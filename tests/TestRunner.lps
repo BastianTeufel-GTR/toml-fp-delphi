@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Debug"/>
+    <Units>
+      <Unit>
+        <Filename Value="TestRunner.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="-1"/>
+        <CursorPos X="-1" Y="-1"/>
+        <UsageCount Value="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="TestCaseTOML.pas"/>
+        <IsPartOfProject Value="True"/>
+        <TopLine Value="405"/>
+        <CursorPos X="29" Y="423"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\packages\fcl-fpcunit\src\testregistry.pp"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="79"/>
+        <CursorPos X="31" Y="88"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\src\TOML.Serializer.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="219"/>
+        <CursorPos X="8" Y="229"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="16">
+      <Position>
+        <Filename Value="testcasetoml.pas"/>
+        <Caret Line="8" Column="42"/>
+      </Position>
+      <Position>
+        <Filename Value="testcasetoml.pas"/>
+        <Caret Line="5" Column="10"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="85" Column="40" TopLine="76"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="8" Column="63"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="581" Column="17" TopLine="570"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="650" Column="48" TopLine="639"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="581" Column="17" TopLine="570"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="661" Column="24" TopLine="650"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="581" Column="17" TopLine="570"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="671" Column="23" TopLine="660"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="581" Column="17" TopLine="300"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="8" Column="74"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="83" Column="14" TopLine="74"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="88" Column="31" TopLine="79"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Serializer.pas"/>
+        <Caret Line="8" Column="54"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Serializer.pas"/>
+        <Caret Line="224" Column="18" TopLine="219"/>
+      </Position>
+      <Position>
+        <Filename Value="TestCaseTOML.pas"/>
+        <Caret Line="379" Column="4" TopLine="370"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
