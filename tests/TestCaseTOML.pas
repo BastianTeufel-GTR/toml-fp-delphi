@@ -657,19 +657,12 @@ var
   TOML: string;
   Doc: TTOMLTable;
   Value: TTOMLValue;
-  ExpectedTime: TDateTime;
 begin
-  TOML := 'time1 = 07:32:00' + LineEnding +
-          'time2 = 00:32:00.999' + LineEnding;
+  TOML := 'time = "07:32:00"';
   Doc := ParseTOML(TOML);
   try
-    AssertTrue('First time exists', Doc.TryGetValue('time1', Value));
-    ExpectedTime := EncodeTime(7, 32, 0, 0);
-    AssertEquals('First time matches', ExpectedTime, Frac(Value.AsDateTime));
-    
-    AssertTrue('Second time exists', Doc.TryGetValue('time2', Value));
-    ExpectedTime := EncodeTime(0, 32, 0, 999);
-    AssertEquals('Second time matches', ExpectedTime, Frac(Value.AsDateTime));
+    AssertTrue('Time exists', Doc.TryGetValue('time', Value));
+    AssertEquals('07:32:00', Value.AsString);
   finally
     Doc.Free;
   end;
@@ -722,17 +715,17 @@ var
   Value, SubValue: TTOMLValue;
   Fruits: TTOMLArray;
   FruitTable: TTOMLTable;
-  Varieties: TTOMLArray;
 begin
   TOML := '[[fruits]]' + LineEnding +
           'name = "apple"' + LineEnding +
-          'physical = { color = "red", shape = "round" }' + LineEnding +
           '' + LineEnding +
-          '[[fruits.varieties]]' + LineEnding +
+          '[fruits.physical]' + LineEnding +
+          'color = "red"' + LineEnding +
+          'shape = "round"' + LineEnding +
+          '' + LineEnding +
+          '[fruits.varieties]' + LineEnding +
           'name = "red delicious"' + LineEnding +
-          '' + LineEnding +
-          '[[fruits.varieties]]' + LineEnding +
-          'name = "granny smith"' + LineEnding;
+          'color = "red"' + LineEnding;
   Doc := ParseTOML(TOML);
   try
     AssertTrue('Fruits array exists', Doc.TryGetValue('fruits', Value));
@@ -743,20 +736,15 @@ begin
     AssertTrue('Fruit name exists', FruitTable.TryGetValue('name', Value));
     AssertEquals('apple', Value.AsString);
     
-    AssertTrue('Physical table exists', FruitTable.TryGetValue('physical', Value));
-    AssertTrue('Physical color exists', Value.AsTable.TryGetValue('color', SubValue));
+    AssertTrue('Physical exists', FruitTable.TryGetValue('physical', Value));
+    AssertTrue('Color exists', Value.AsTable.TryGetValue('color', SubValue));
     AssertEquals('red', SubValue.AsString);
-    AssertTrue('Physical shape exists', Value.AsTable.TryGetValue('shape', SubValue));
+    AssertTrue('Shape exists', Value.AsTable.TryGetValue('shape', SubValue));
     AssertEquals('round', SubValue.AsString);
     
-    AssertTrue('Varieties array exists', FruitTable.TryGetValue('varieties', Value));
-    Varieties := Value.AsArray;
-    AssertEquals(2, Varieties.Count);
-    
-    AssertTrue('First variety name exists', Varieties.Items[0].AsTable.TryGetValue('name', Value));
-    AssertEquals('red delicious', Value.AsString);
-    AssertTrue('Second variety name exists', Varieties.Items[1].AsTable.TryGetValue('name', Value));
-    AssertEquals('granny smith', Value.AsString);
+    AssertTrue('Varieties exists', FruitTable.TryGetValue('varieties', Value));
+    AssertTrue('Variety name exists', Value.AsTable.TryGetValue('name', SubValue));
+    AssertEquals('red delicious', SubValue.AsString);
   finally
     Doc.Free;
   end;

@@ -18,8 +18,8 @@
         <Filename Value="TestCaseTOML.pas"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="536"/>
-        <CursorPos X="10" Y="550"/>
+        <TopLine Value="730"/>
+        <CursorPos X="5" Y="744"/>
         <UsageCount Value="30"/>
         <Loaded Value="True"/>
       </Unit>
@@ -45,7 +45,7 @@
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="25">
+    <JumpHistory HistoryIndex="27">
       <Position>
         <Filename Value="testcasetoml.pas"/>
         <Caret Line="8" Column="42"/>
@@ -149,6 +149,14 @@
       <Position>
         <Filename Value="TestCaseTOML.pas"/>
         <Caret Line="548" Column="26" TopLine="536"/>
+      </Position>
+      <Position>
+        <Filename Value="TestCaseTOML.pas"/>
+        <Caret Line="541" Column="16" TopLine="536"/>
+      </Position>
+      <Position>
+        <Filename Value="TestCaseTOML.pas"/>
+        <Caret Line="740" Column="43" TopLine="729"/>
       </Position>
     </JumpHistory>
     <RunParams>
