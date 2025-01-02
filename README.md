@@ -74,7 +74,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 
 ### Requirements
 - Free Pascal Compiler 3.2.2 or later
-- Lazarus IDE 3.6 (optional, for development)
+- Lazarus IDE 3.6 (for running tests)
 
 ### Steps
 1. Clone the repository:
