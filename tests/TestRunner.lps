@@ -31,8 +31,8 @@
         <Filename Value="..\src\TOML.Parser.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="82"/>
-        <CursorPos X="32" Y="92"/>
+        <TopLine Value="800"/>
+        <CursorPos X="48" Y="809"/>
         <UsageCount Value="17"/>
         <Loaded Value="True"/>
       </Unit>
@@ -46,14 +46,6 @@
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="testcasetoml.pas"/>
-        <Caret Line="8" Column="42"/>
-      </Position>
-      <Position>
-        <Filename Value="testcasetoml.pas"/>
-        <Caret Line="5" Column="10"/>
-      </Position>
       <Position>
         <Filename Value="..\src\TOML.Parser.pas"/>
         <Caret Line="85" Column="40" TopLine="76"/>
@@ -165,6 +157,14 @@
       <Position>
         <Filename Value="TestCaseTOML.pas"/>
         <Caret Line="771" Column="16" TopLine="762"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="92" Column="32" TopLine="82"/>
+      </Position>
+      <Position>
+        <Filename Value="..\src\TOML.Parser.pas"/>
+        <Caret Line="811" Column="41" TopLine="800"/>
       </Position>
     </JumpHistory>
     <RunParams>

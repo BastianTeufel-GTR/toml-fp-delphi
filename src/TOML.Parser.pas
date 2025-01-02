@@ -5,7 +5,7 @@ unit TOML.Parser;
 interface
 
 uses
-  SysUtils, Classes, TOML.Types, Generics.Collections, TypInfo, DateUtils;
+  SysUtils, Classes, TOML.Types, Generics.Collections, TypInfo, DateUtils, Math;
 
 type
   { Token types for lexical analysis }
@@ -807,11 +807,11 @@ begin
     
     // Check for special values
     if SameText(Value, 'inf') or SameText(Value, '+inf') then
-      Result := TTOMLFloat.Create(Infinity)
+      Result := TTOMLFloat.Create(1.0/0.0)  // Creates positive infinity
     else if SameText(Value, '-inf') then
-      Result := TTOMLFloat.Create(NegInfinity)
+      Result := TTOMLFloat.Create(-1.0/0.0)  // Creates negative infinity
     else if SameText(Value, 'nan') or SameText(Value, '+nan') or SameText(Value, '-nan') then
-      Result := TTOMLFloat.Create(NaN)
+      Result := TTOMLFloat.Create(0.0/0.0)  // Creates NaN
     else
     begin
       Val(Value, FloatValue, Code);
