@@ -952,64 +952,116 @@ begin
   end;
 end;
 
-procedure TTOMLTestCase.Test67_ArrayTypeValidation;
+procedure TTOMLTestCase.Test67_ArrayTypeValidation; 
+var
+  Data: TTOMLTable;
+  Value: TTOMLValue;
 begin
+  // Test 1: Mixed Types
   try
-    ParseTOML('mixed = [1, "string", true]');  // Mixed types are allowed
+    Data := ParseTOML('mixed = [1, "string", true]');
+    try
+      AssertTrue('Array exists', Data.TryGetValue('mixed', Value));
+      AssertEquals('Array count', 3, Value.AsArray.Count);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Mixed-type arrays should be allowed');
   end;
   
+  // Test 2: Mixed Numbers
   try
-    ParseTOML('numbers = [1, 2.0]');  // Mixed numbers are allowed
+    Data := ParseTOML('numbers = [1, 2.0]');
+    try
+      AssertTrue('Numbers array exists', Data.TryGetValue('numbers', Value));
+      AssertEquals('Numbers array count', 2, Value.AsArray.Count);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Mixed number types should be allowed');
   end;
   
+  // Test 3: Nested Arrays
   try
-    ParseTOML('nested = [[1, 2], [3, 4]]');  // Nested arrays of same type are allowed
+    Data := ParseTOML('nested = [[1, 2], [3, 4]]');
+    try
+      AssertTrue('Nested array exists', Data.TryGetValue('nested', Value));
+      AssertEquals('Nested arrays count', 2, Value.AsArray.Count);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Nested arrays of same type should be allowed');
   end;
   
-  // According to TOML spec, mixed array/non-array values are actually allowed
+  // Test 4: Mixed Array/Non-Array Values
   try
-    ParseTOML('mixed_array = [1, [2, 3], 4]');  // Mixed array/non-array values
+    Data := ParseTOML('mixed_array = [1, [2, 3], 4]');
+    try
+      AssertTrue('Mixed array exists', Data.TryGetValue('mixed_array', Value));
+      AssertEquals('Mixed array count', 3, Value.AsArray.Count);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Mixed array/non-array values should be allowed according to TOML spec');
   end;
 end;
 
+
 procedure TTOMLTestCase.Test68_KeyValidation;
+var
+  Data: TTOMLTable;
+  Value: TTOMLValue;
 begin
+  // Test 1: Valid Dotted Key
   try
-    ParseTOML('valid.key = "value"');  // Standard dotted key
+    Data := ParseTOML('valid.key = "value"');
+    try
+      AssertTrue('valid.key exists', Data.TryGetValue('valid.key', Value));
+      AssertEquals('valid.key value', 'value', Value.AsString);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Valid dotted key should be allowed');
   end;
   
+  // Test 2: Quoted Key with Dots
   try
-    ParseTOML('valid."dotted.key" = "value"');  // Quoted key containing dots
+    Data := ParseTOML('valid."dotted.key" = "value"');
+    try
+      AssertTrue('"dotted.key" exists', Data.TryGetValue('dotted.key', Value));
+      AssertEquals('"dotted.key" value', 'value', Value.AsString);
+    finally
+      Data.Free;
+    end;
   except
     on E: ETOMLParserException do
       Fail('Quoted key containing dots should be allowed');
   end;
   
+  // Test 3: Invalid Key with Empty Component
   try
-    ParseTOML('invalid. = "value"');  // Empty key component
+    Data := ParseTOML('invalid. = "value"');
+    FreeAndNil(Data);
     Fail('Empty key component should not be allowed');
   except
     on E: ETOMLParserException do
       ; // Test passes
   end;
   
+  // Test 4: Invalid Key with Double Dots
   try
-    ParseTOML('invalid..key = "value"');  // Double dots
+    Data := ParseTOML('invalid..key = "value"');
+    FreeAndNil(Data);
     Fail('Double dots in key should not be allowed');
   except
     on E: ETOMLParserException do
