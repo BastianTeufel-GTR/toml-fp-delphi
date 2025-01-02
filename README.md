@@ -59,20 +59,25 @@ program BasicParseTOML;
 {$mode objfpc}{$H+}{$J-}
 
 uses
-  Classes, TOML;
+  TOML;
 
 var
   Config: TTOMLTable;
-  ProjectValue: TTOMLValue;
+  RevisionValue, ProjectValue, ProjectName: TTOMLValue;
   ProjectTable: TTOMLTable;
-  ProjectName: TTOMLValue;
+
 begin
   // Parse TOML from file
   Config := ParseTOMLFromFile('config.toml');
   try
+
+    // Access a string value
+    if (Config.TryGetValue('revision', RevisionValue)) then
+      WriteLn('The value of ''revision'' is ', RevisionValue.AsString);
+
     // Access nested values safely
     if Config.TryGetValue('project', ProjectValue) and
-       (ProjectValue is TTOMLTable) then
+      (ProjectValue is TTOMLTable) then
     begin
       ProjectTable := TTOMLTable(ProjectValue);
       if ProjectTable.TryGetValue('name', ProjectName) then
@@ -88,8 +93,13 @@ begin
 end.
 ```
 
-Example config.toml:
+Example `config.toml`:
+
 ```toml
+# config.toml
+
+revision = "1.2.1af"
+
 [project]
 name = "My Amazing Project"
 version = "1.0.0"
@@ -141,7 +151,8 @@ end.
 
 #### Serializing Complex Structures
 ```pascal
-program SerializationExample;
+program BasicSerializeTOML;
+
 {$mode objfpc}{$H+}{$J-}
 
 uses
@@ -150,7 +161,7 @@ uses
 var
   Config, ServerConfig: TTOMLTable;
   Ports: TTOMLArray;
-  TOMLString: string;
+  SerializedTOML: string;
 begin
   Config := TOMLTable;
   try
@@ -158,31 +169,31 @@ begin
     ServerConfig := TOMLTable;
     ServerConfig.Add('host', TOMLString('127.0.0.1'));
     ServerConfig.Add('enabled', TOMLBoolean(True));
-    
+
     // Create and populate an array
     Ports := TOMLArray;
     Ports.Add(TOMLInteger(80));
     Ports.Add(TOMLInteger(443));
     ServerConfig.Add('ports', Ports);
-    
+
     // Add the server config to main config
     Config.Add('server', ServerConfig);
-    
+
     // Add some basic metadata
     Config.Add('version', TOMLFloat(1.0));
     Config.Add('last_updated', TOMLDateTime(Now));
-    
+
     // Serialize to TOML format
-    TOMLString := SerializeTOML(Config);
+    SerializedTOML := SerializeTOML(Config);
     WriteLn('Generated TOML:');
-    WriteLn(TOMLString);
-    
+    WriteLn(SerializedTOML);
+
     // Save to file
     if SerializeTOMLToFile(Config, 'config.toml') then
       WriteLn('Successfully saved to file')
     else
       WriteLn('Error saving to file');
-      
+
   finally
     Config.Free;
   end;

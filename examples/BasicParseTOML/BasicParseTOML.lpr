@@ -3,20 +3,25 @@ program BasicParseTOML;
 {$mode objfpc}{$H+}{$J-}
 
 uses
-  Classes, TOML;
+  TOML;
 
 var
   Config: TTOMLTable;
-  ProjectValue: TTOMLValue;
+  RevisionValue, ProjectValue, ProjectName: TTOMLValue;
   ProjectTable: TTOMLTable;
-  ProjectName: TTOMLValue;
+
 begin
   // Parse TOML from file
   Config := ParseTOMLFromFile('config.toml');
   try
+
+    // Access a string value
+    if (Config.TryGetValue('revision', RevisionValue)) then
+      WriteLn('The value of ''revision'' is ', RevisionValue.AsString);
+
     // Access nested values safely
     if Config.TryGetValue('project', ProjectValue) and
-       (ProjectValue is TTOMLTable) then
+      (ProjectValue is TTOMLTable) then
     begin
       ProjectTable := TTOMLTable(ProjectValue);
       if ProjectTable.TryGetValue('name', ProjectName) then
@@ -30,4 +35,3 @@ begin
     Config.Free;
   end;
 end.
-
