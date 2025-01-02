@@ -1,6 +1,6 @@
 unit TestCaseTOML;
 
-{$mode objfpc}{$H+}
+{$mode objfpc}{$H+}{$J-}
 
 interface
 
