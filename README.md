@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
 [![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
+[![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
 
 A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, fully compliant with TOML v1.0.0 specification.
 
