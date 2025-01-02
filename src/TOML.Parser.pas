@@ -340,14 +340,21 @@ function TTOMLLexer.ScanDateTime: TToken;
 var
   StartColumn: Integer;
   i: Integer;
+  HasTime: Boolean;
+  HasTimezone: Boolean;
 begin
   StartColumn := FColumn;
   Result.Value := '';
+  Result.TokenType := ttInteger; // Default to integer
+  HasTime := False;
+  HasTimezone := False;
   
   // Scan date part (YYYY-MM-DD)
   // First scan year
   if not IsDigit(Peek) then
     Exit;
+  
+  // Year
   for i := 1 to 4 do
   begin
     if not IsDigit(Peek) then
@@ -355,10 +362,12 @@ begin
     Result.Value := Result.Value + Advance;
   end;
   
-  // Scan month
+  // First hyphen
   if Peek <> '-' then
     Exit;
   Result.Value := Result.Value + Advance;
+  
+  // Month
   for i := 1 to 2 do
   begin
     if not IsDigit(Peek) then
@@ -366,10 +375,12 @@ begin
     Result.Value := Result.Value + Advance;
   end;
   
-  // Scan day
+  // Second hyphen
   if Peek <> '-' then
     Exit;
   Result.Value := Result.Value + Advance;
+  
+  // Day
   for i := 1 to 2 do
   begin
     if not IsDigit(Peek) then
@@ -377,12 +388,68 @@ begin
     Result.Value := Result.Value + Advance;
   end;
   
-  // Check for time part
-  if Peek = 'T' then
+  // Must have 'T' after date
+  if Peek <> 'T' then
+    Exit;
+  Result.Value := Result.Value + Advance;
+  
+  // Hours
+  for i := 1 to 2 do
+  begin
+    if not IsDigit(Peek) then
+      Exit;
+    Result.Value := Result.Value + Advance;
+  end;
+  
+  // First colon
+  if Peek <> ':' then
+    Exit;
+  Result.Value := Result.Value + Advance;
+  
+  // Minutes
+  for i := 1 to 2 do
+  begin
+    if not IsDigit(Peek) then
+      Exit;
+    Result.Value := Result.Value + Advance;
+  end;
+  
+  // Second colon
+  if Peek <> ':' then
+    Exit;
+  Result.Value := Result.Value + Advance;
+  
+  // Seconds
+  for i := 1 to 2 do
+  begin
+    if not IsDigit(Peek) then
+      Exit;
+    Result.Value := Result.Value + Advance;
+  end;
+  
+  HasTime := True;
+  
+  // Optional fractional seconds
+  if Peek = '.' then
+  begin
+    Result.Value := Result.Value + Advance;
+    if not IsDigit(Peek) then
+      Exit;
+    while IsDigit(Peek) do
+      Result.Value := Result.Value + Advance;
+  end;
+  
+  // Must have timezone
+  if Peek = 'Z' then
+  begin
+    Result.Value := Result.Value + Advance;
+    HasTimezone := True;
+  end
+  else if Peek in ['+', '-'] then
   begin
     Result.Value := Result.Value + Advance;
     
-    // Scan hours
+    // Hours
     for i := 1 to 2 do
     begin
       if not IsDigit(Peek) then
@@ -390,66 +457,25 @@ begin
       Result.Value := Result.Value + Advance;
     end;
     
-    // Scan minutes
-    if Peek <> ':' then
-      Exit;
-    Result.Value := Result.Value + Advance;
-    for i := 1 to 2 do
-    begin
-      if not IsDigit(Peek) then
-        Exit;
-      Result.Value := Result.Value + Advance;
-    end;
-    
-    // Scan seconds
-    if Peek <> ':' then
-      Exit;
-    Result.Value := Result.Value + Advance;
-    for i := 1 to 2 do
-    begin
-      if not IsDigit(Peek) then
-        Exit;
-      Result.Value := Result.Value + Advance;
-    end;
-    
-    // Check for fractional seconds
-    if Peek = '.' then
+    // Optional minutes
+    if Peek = ':' then
     begin
       Result.Value := Result.Value + Advance;
-      while IsDigit(Peek) do
-        Result.Value := Result.Value + Advance;
-    end;
-    
-    // Check for timezone
-    if Peek in ['Z', '+', '-'] then
-    begin
-      Result.Value := Result.Value + Advance;
-      if Peek <> 'Z' then
+      for i := 1 to 2 do
       begin
-        // Hours
-        for i := 1 to 2 do
-        begin
-          if not IsDigit(Peek) then
-            Exit;
-          Result.Value := Result.Value + Advance;
-        end;
-        
-        // Optional minutes
-        if Peek = ':' then
-        begin
-          Result.Value := Result.Value + Advance;
-          for i := 1 to 2 do
-          begin
-            if not IsDigit(Peek) then
-              Exit;
-            Result.Value := Result.Value + Advance;
-          end;
-        end;
+        if not IsDigit(Peek) then
+          Exit;
+        Result.Value := Result.Value + Advance;
       end;
     end;
+    
+    HasTimezone := True;
   end;
   
-  Result.TokenType := ttDateTime;
+  // Only set as DateTime if we have both time and timezone
+  if HasTime and HasTimezone then
+    Result.TokenType := ttDateTime;
+  
   Result.Line := FLine;
   Result.Column := StartColumn;
 end;
@@ -516,14 +542,17 @@ begin
     end;
     '"', '''': Result := ScanString;
     '0'..'9': begin
-      // Try to scan as DateTime first
+      // Save current position
       SavePos := FPosition;
       SaveLine := FLine;
       SaveCol := FColumn;
+      
+      // Try to scan as DateTime first
       Result := ScanDateTime;
+      
+      // If not a DateTime, restore position and try as number
       if Result.TokenType <> ttDateTime then
       begin
-        // Restore position and scan as number
         FPosition := SavePos;
         FLine := SaveLine;
         FColumn := SaveCol;
@@ -605,6 +634,17 @@ function TTOMLParser.ParseValue: TTOMLValue;
 begin
   case FCurrentToken.TokenType of
     ttString: Result := ParseString;
+    ttDateTime: begin
+      try
+        Result := ParseDateTime;
+      except
+        on E: ETOMLParserException do
+          raise;
+        on E: Exception do
+          raise ETOMLParserException.CreateFmt('Error parsing DateTime: %s at line %d, column %d',
+            [E.Message, FCurrentToken.Line, FCurrentToken.Column]);
+      end;
+    end;
     ttInteger, ttFloat: Result := ParseNumber;
     ttIdentifier:
       if SameText(FCurrentToken.Value, 'true') or SameText(FCurrentToken.Value, 'false') then
@@ -612,7 +652,6 @@ begin
       else
         raise ETOMLParserException.CreateFmt('Unexpected identifier: %s at line %d, column %d',
           [FCurrentToken.Value, FCurrentToken.Line, FCurrentToken.Column]);
-    ttDateTime: Result := ParseDateTime;
     ttLBracket: Result := ParseArray;
     ttLBrace: Result := ParseInlineTable;
     else
@@ -668,17 +707,92 @@ end;
 function TTOMLParser.ParseDateTime: TTOMLDateTime;
 var
   DateStr: string;
-  DateTime: TDateTime;
+  Year, Month, Day, Hour, Minute, Second: Word;
+  MilliSecond: Word;
+  TZHour, TZMinute: Integer;
+  TZNegative: Boolean;
+  P: Integer;
+  FracStr: string;
+  DT: TDateTime;
 begin
+  if FCurrentToken.TokenType <> ttDateTime then
+    raise ETOMLParserException.CreateFmt('Expected DateTime but got %s at line %d, column %d',
+      [GetEnumName(TypeInfo(TTokenType), Ord(FCurrentToken.TokenType)),
+       FCurrentToken.Line, FCurrentToken.Column]);
+
   DateStr := FCurrentToken.Value;
+  
+  // Parse date part (YYYY-MM-DD)
+  Year := StrToInt(Copy(DateStr, 1, 4));
+  Month := StrToInt(Copy(DateStr, 6, 2));
+  Day := StrToInt(Copy(DateStr, 9, 2));
+  
+  // Parse time part (Thh:mm:ss)
+  Hour := StrToInt(Copy(DateStr, 12, 2));
+  Minute := StrToInt(Copy(DateStr, 15, 2));
+  Second := StrToInt(Copy(DateStr, 18, 2));
+  
+  // Initialize milliseconds
+  MilliSecond := 0;
+  
+  // Find position after seconds
+  P := 20;
+  
+  // Parse fractional seconds if present
+  if (P <= Length(DateStr)) and (DateStr[P] = '.') then
+  begin
+    Inc(P);
+    FracStr := '';
+    while (P <= Length(DateStr)) and (DateStr[P] in ['0'..'9']) do
+    begin
+      FracStr := FracStr + DateStr[P];
+      Inc(P);
+    end;
+    if Length(FracStr) > 0 then
+      MilliSecond := StrToInt(Copy(FracStr + '000', 1, 3));
+  end;
+  
+  // Parse timezone
+  TZHour := 0;
+  TZMinute := 0;
+  TZNegative := False;
+  
+  if P <= Length(DateStr) then
+  begin
+    case DateStr[P] of
+      'Z': ; // UTC, no adjustment needed
+      '+', '-':
+      begin
+        TZNegative := DateStr[P] = '-';
+        Inc(P);
+        TZHour := StrToInt(Copy(DateStr, P, 2));
+        Inc(P, 2);
+        if (P <= Length(DateStr)) and (DateStr[P] = ':') then
+        begin
+          Inc(P);
+          TZMinute := StrToInt(Copy(DateStr, P, 2));
+        end;
+      end;
+    end;
+  end;
+  
+  // Create DateTime value
   try
-    DateTime := ISO8601ToDate(DateStr);
-    Result := TTOMLDateTime.Create(DateTime);
+    DT := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Second, MilliSecond);
+    
+    // Apply timezone offset
+    if TZNegative then
+      DT := DT + (TZHour + TZMinute/60)/24
+    else
+      DT := DT - (TZHour + TZMinute/60)/24;
+      
+    Result := TTOMLDateTime.Create(DT);
   except
     on E: Exception do
       raise ETOMLParserException.CreateFmt('Invalid datetime value: %s at line %d, column %d',
         [DateStr, FCurrentToken.Line, FCurrentToken.Column]);
   end;
+  
   Advance;
 end;
 
