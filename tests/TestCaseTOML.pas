@@ -49,6 +49,19 @@ type
     procedure Test42_InvalidDateTime;
     procedure Test43_InvalidTableKey;
     procedure Test44_DuplicateKey;
+    
+    { TOML v1.0.0 Specification Tests }
+    procedure Test50_MultilineString;
+    procedure Test51_LiteralString;
+    procedure Test52_MultilineLiteralString;
+    procedure Test53_IntegerWithUnderscores;
+    procedure Test54_HexOctBinIntegers;
+    procedure Test55_FloatWithUnderscores;
+    procedure Test56_LocalDateTime;
+    procedure Test57_LocalDate;
+    procedure Test58_LocalTime;
+    procedure Test59_ArrayOfTables;
+    procedure Test60_DottedTableArray;
   end;
 
 implementation
@@ -482,6 +495,270 @@ begin
   except
     on E: ETOMLParserException do
       ; // Test passes
+  end;
+end;
+
+procedure TTOMLTestCase.Test50_MultilineString;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'str1 = """' + LineEnding +
+          'Roses are red' + LineEnding +
+          'Violets are blue"""' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('String value exists', Doc.TryGetValue('str1', Value));
+    AssertEquals('Roses are red' + LineEnding + 'Violets are blue', 
+      Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test51_LiteralString;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'winpath = ''C:\Users\nodejs\templates''' + LineEnding +
+          'winpath2 = ''\\ServerX\admin$\system32\''' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('First path exists', Doc.TryGetValue('winpath', Value));
+    AssertEquals('C:\Users\nodejs\templates', Value.AsString);
+    AssertTrue('Second path exists', Doc.TryGetValue('winpath2', Value));
+    AssertEquals('\\ServerX\admin$\system32\', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test52_MultilineLiteralString;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'regex = ''''''I [dw]on''t need \d{2} apples''''''';
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Regex exists', Doc.TryGetValue('regex', Value));
+    AssertEquals('I [dw]on''t need \d{2} apples', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test53_IntegerWithUnderscores;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'int1 = 1_000' + LineEnding +
+          'int2 = 5_349_221' + LineEnding +
+          'int3 = 1_2_3_4_5' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('First integer exists', Doc.TryGetValue('int1', Value));
+    AssertEquals(1000, Value.AsInteger);
+    AssertTrue('Second integer exists', Doc.TryGetValue('int2', Value));
+    AssertEquals(5349221, Value.AsInteger);
+    AssertTrue('Third integer exists', Doc.TryGetValue('int3', Value));
+    AssertEquals(12345, Value.AsInteger);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test54_HexOctBinIntegers;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'hex = 0xDEADBEEF' + LineEnding +
+          'oct = 0o755' + LineEnding +
+          'bin = 0b11010110' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Hex exists', Doc.TryGetValue('hex', Value));
+    AssertEquals(3735928559, Value.AsInteger);
+    AssertTrue('Oct exists', Doc.TryGetValue('oct', Value));
+    AssertEquals(493, Value.AsInteger);
+    AssertTrue('Bin exists', Doc.TryGetValue('bin', Value));
+    AssertEquals(214, Value.AsInteger);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test55_FloatWithUnderscores;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'float1 = 1_000.000_001' + LineEnding +
+          'float2 = 1e1_0' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('First float exists', Doc.TryGetValue('float1', Value));
+    AssertEquals(1000.000001, Value.AsFloat, 0.000001);
+    AssertTrue('Second float exists', Doc.TryGetValue('float2', Value));
+    AssertEquals(1e10, Value.AsFloat, 0.0);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test56_LocalDateTime;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'ldt1 = 1979-05-27T07:32:00' + LineEnding +
+          'ldt2 = 1979-05-27T00:32:00.999999' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('First datetime exists', Doc.TryGetValue('ldt1', Value));
+    AssertEquals('1979-05-27T07:32:00', 
+      FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Value.AsDateTime));
+    AssertTrue('Second datetime exists', Doc.TryGetValue('ldt2', Value));
+    AssertEquals('1979-05-27T00:32:00.999', 
+      FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Value.AsDateTime));
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test57_LocalDate;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'date1 = 1979-05-27' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Date exists', Doc.TryGetValue('date1', Value));
+    AssertEquals('1979-05-27', FormatDateTime('yyyy-mm-dd', Value.AsDateTime));
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test58_LocalTime;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+  ExpectedTime: TDateTime;
+begin
+  TOML := 'time1 = 07:32:00' + LineEnding +
+          'time2 = 00:32:00.999' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('First time exists', Doc.TryGetValue('time1', Value));
+    ExpectedTime := EncodeTime(7, 32, 0, 0);
+    AssertEquals('First time matches', ExpectedTime, Frac(Value.AsDateTime));
+    
+    AssertTrue('Second time exists', Doc.TryGetValue('time2', Value));
+    ExpectedTime := EncodeTime(0, 32, 0, 999);
+    AssertEquals('Second time matches', ExpectedTime, Frac(Value.AsDateTime));
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test59_ArrayOfTables;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+  Products: TTOMLArray;
+  ProductTable: TTOMLTable;
+begin
+  TOML := '[[products]]' + LineEnding +
+          'name = "Hammer"' + LineEnding +
+          'sku = 738594937' + LineEnding +
+          '' + LineEnding +
+          '[[products]]' + LineEnding +
+          'name = "Nail"' + LineEnding +
+          'sku = 284758393' + LineEnding +
+          'color = "gray"' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Products array exists', Doc.TryGetValue('products', Value));
+    Products := Value.AsArray;
+    AssertEquals(2, Products.Count);
+    
+    ProductTable := Products.Items[0].AsTable;
+    AssertTrue('First product name exists', ProductTable.TryGetValue('name', Value));
+    AssertEquals('Hammer', Value.AsString);
+    AssertTrue('First product sku exists', ProductTable.TryGetValue('sku', Value));
+    AssertEquals(738594937, Value.AsInteger);
+    
+    ProductTable := Products.Items[1].AsTable;
+    AssertTrue('Second product name exists', ProductTable.TryGetValue('name', Value));
+    AssertEquals('Nail', Value.AsString);
+    AssertTrue('Second product sku exists', ProductTable.TryGetValue('sku', Value));
+    AssertEquals(284758393, Value.AsInteger);
+    AssertTrue('Second product color exists', ProductTable.TryGetValue('color', Value));
+    AssertEquals('gray', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test60_DottedTableArray;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value, SubValue: TTOMLValue;
+  Fruits: TTOMLArray;
+  FruitTable: TTOMLTable;
+  Varieties: TTOMLArray;
+begin
+  TOML := '[[fruits]]' + LineEnding +
+          'name = "apple"' + LineEnding +
+          'physical = { color = "red", shape = "round" }' + LineEnding +
+          '' + LineEnding +
+          '[[fruits.varieties]]' + LineEnding +
+          'name = "red delicious"' + LineEnding +
+          '' + LineEnding +
+          '[[fruits.varieties]]' + LineEnding +
+          'name = "granny smith"' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Fruits array exists', Doc.TryGetValue('fruits', Value));
+    Fruits := Value.AsArray;
+    AssertEquals(1, Fruits.Count);
+    
+    FruitTable := Fruits.Items[0].AsTable;
+    AssertTrue('Fruit name exists', FruitTable.TryGetValue('name', Value));
+    AssertEquals('apple', Value.AsString);
+    
+    AssertTrue('Physical table exists', FruitTable.TryGetValue('physical', Value));
+    AssertTrue('Physical color exists', Value.AsTable.TryGetValue('color', SubValue));
+    AssertEquals('red', SubValue.AsString);
+    AssertTrue('Physical shape exists', Value.AsTable.TryGetValue('shape', SubValue));
+    AssertEquals('round', SubValue.AsString);
+    
+    AssertTrue('Varieties array exists', FruitTable.TryGetValue('varieties', Value));
+    Varieties := Value.AsArray;
+    AssertEquals(2, Varieties.Count);
+    
+    AssertTrue('First variety name exists', Varieties.Items[0].AsTable.TryGetValue('name', Value));
+    AssertEquals('red delicious', Value.AsString);
+    AssertTrue('Second variety name exists', Varieties.Items[1].AsTable.TryGetValue('name', Value));
+    AssertEquals('granny smith', Value.AsString);
+  finally
+    Doc.Free;
   end;
 end;
 
