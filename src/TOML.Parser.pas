@@ -216,6 +216,7 @@ var
   IsMultiline: Boolean;
   QuoteChar: Char;
   StartColumn: Integer;
+  TempValue: string;
 begin
   IsMultiline := False;
   StartColumn := FColumn;
@@ -228,47 +229,59 @@ begin
     Advance; // Skip third quote
   end;
   
-  Result.Value := '';
-  while not IsAtEnd do
-  begin
-    if IsMultiline then
+  TempValue := '';
+  try
+    while not IsAtEnd do
     begin
-      if (Peek = QuoteChar) and (PeekNext = QuoteChar) and 
-         (FPosition + 2 <= Length(FInput)) and (FInput[FPosition + 2] = QuoteChar) then
+      if IsMultiline then
       begin
-        Advance; // Skip first quote
-        Advance; // Skip second quote
-        Advance; // Skip third quote
+        if (Peek = QuoteChar) and (PeekNext = QuoteChar) and 
+           (FPosition + 2 <= Length(FInput)) and (FInput[FPosition + 2] = QuoteChar) then
+        begin
+          Advance; // Skip first quote
+          Advance; // Skip second quote
+          Advance; // Skip third quote
+          Break;
+        end;
+      end
+      else if Peek = QuoteChar then
+      begin
+        Advance;
         Break;
       end;
-    end
-    else if Peek = QuoteChar then
-    begin
-      Advance;
-      Break;
+      
+      if Peek = '\' then
+      begin
+        Advance; // Skip backslash
+        case Peek of
+          'n': TempValue := TempValue + #10;
+          't': TempValue := TempValue + #9;
+          'r': TempValue := TempValue + #13;
+          '\': TempValue := TempValue + '\';
+          '"': TempValue := TempValue + '"';
+          '''': TempValue := TempValue + '''';
+          else raise ETOMLParserException.Create('Invalid escape sequence');
+        end;
+        Advance;
+      end
+      else
+        TempValue := TempValue + Advance;
     end;
     
-    if Peek = '\' then
+    Result.TokenType := ttString;
+    Result.Value := TempValue;
+    Result.Line := FLine;
+    Result.Column := StartColumn;
+  except
+    on E: Exception do
     begin
-      Advance; // Skip backslash
-      case Peek of
-        'n': Result.Value := Result.Value + #10;
-        't': Result.Value := Result.Value + #9;
-        'r': Result.Value := Result.Value + #13;
-        '\': Result.Value := Result.Value + '\';
-        '"': Result.Value := Result.Value + '"';
-        '''': Result.Value := Result.Value + '''';
-        else raise ETOMLParserException.Create('Invalid escape sequence');
-      end;
-      Advance;
-    end
-    else
-      Result.Value := Result.Value + Advance;
+      Result.TokenType := ttString;
+      Result.Value := '';
+      Result.Line := FLine;
+      Result.Column := StartColumn;
+      raise;
+    end;
   end;
-  
-  Result.TokenType := ttString;
-  Result.Line := FLine;
-  Result.Column := StartColumn;
 end;
 
 function TTOMLLexer.ScanNumber: TToken;
@@ -858,6 +871,7 @@ end;
 function TTOMLParser.ParseKeyValue: TTOMLKeyValuePair;
 var
   Key: string;
+  Value: TTOMLValue;
 begin
   Key := ParseKey;
   
@@ -866,7 +880,13 @@ begin
     
   Expect(ttEqual);
   
-  Result := TTOMLKeyValuePair.Create(Key, ParseValue);
+  try
+    Value := ParseValue;
+    Result := TTOMLKeyValuePair.Create(Key, Value);
+  except
+    Value.Free;
+    raise;
+  end;
 end;
 
 function TTOMLParser.Parse: TTOMLTable;
@@ -928,8 +948,21 @@ begin
           
           ttIdentifier, ttString:
           begin
-            KeyPair := ParseKeyValue;
-            CurrentTable.Add(KeyPair.Key, KeyPair.Value);
+            try
+              KeyPair := ParseKeyValue;
+              try
+                CurrentTable.Add(KeyPair.Key, KeyPair.Value);
+              except
+                KeyPair.Value.Free;
+                raise;
+              end;
+            except
+              on E: ETOMLParserException do
+                raise;
+              on E: Exception do
+                raise ETOMLParserException.CreateFmt('Error adding key-value pair: %s at line %d, column %d',
+                  [E.Message, FCurrentToken.Line, FCurrentToken.Column]);
+            end;
           end;
           
           ttNewLine: Advance;
