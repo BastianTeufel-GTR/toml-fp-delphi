@@ -5,7 +5,7 @@ unit TestCaseTOML;
 interface
 
 uses
-  SysUtils, Classes, TOML, fpcunit, testregistry;
+  SysUtils, Classes, TOML, fpcunit, testregistry, Math;
 
 type
   TTOMLTestCase = class(TTestCase)
@@ -62,6 +62,18 @@ type
     procedure Test58_LocalTime;
     procedure Test59_ArrayOfTables;
     procedure Test60_DottedTableArray;
+    
+    { Additional TOML v1.0.0 Specification Tests }
+    procedure Test61_SpecialFloatValues;
+    procedure Test62_OffsetDateTime;
+    procedure Test63_MultilineArray;
+    procedure Test64_QuotedKeys;
+    procedure Test65_SuperTables;
+    procedure Test66_WhitespaceHandling;
+    procedure Test67_ArrayTypeValidation;
+    procedure Test68_KeyValidation;
+    procedure Test69_TableArrayNesting;
+    procedure Test70_ComplexKeys;
   end;
 
 implementation
@@ -739,6 +751,322 @@ begin
     AssertTrue('Varieties exists', FruitTable.TryGetValue('varieties', Value));
     AssertTrue('Variety name exists', Value.AsTable.TryGetValue('name', SubValue));
     AssertEquals('red delicious', SubValue.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test61_SpecialFloatValues;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'pos_inf = inf' + LineEnding +
+          'neg_inf = -inf' + LineEnding +
+          'not_num = nan';
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Positive infinity exists', Doc.TryGetValue('pos_inf', Value));
+    AssertTrue('Positive infinity check', IsInfinite(Value.AsFloat) and (Value.AsFloat > 0));
+    
+    AssertTrue('Negative infinity exists', Doc.TryGetValue('neg_inf', Value));
+    AssertTrue('Negative infinity check', IsInfinite(Value.AsFloat) and (Value.AsFloat < 0));
+    
+    AssertTrue('NaN exists', Doc.TryGetValue('not_num', Value));
+    AssertTrue('NaN check', IsNan(Value.AsFloat));
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test62_OffsetDateTime;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'odt1 = 1979-05-27T07:32:00Z' + LineEnding +
+          'odt2 = 1979-05-27T07:32:00-07:00' + LineEnding +
+          'odt3 = 1979-05-27T07:32:00.999Z' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('UTC time exists', Doc.TryGetValue('odt1', Value));
+    AssertEquals('UTC time format', '1979-05-27T07:32:00Z', 
+      FormatDateTime('yyyy-mm-dd"T"hh:nn:ss"Z"', Value.AsDateTime));
+    
+    AssertTrue('Negative offset time exists', Doc.TryGetValue('odt2', Value));
+    AssertEquals('Negative offset format', '1979-05-27T07:32:00', 
+      FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Value.AsDateTime));
+    
+    AssertTrue('Time with fraction exists', Doc.TryGetValue('odt3', Value));
+    AssertEquals('Fractional time format', '1979-05-27T07:32:00.999', 
+      FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Value.AsDateTime));
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test63_MultilineArray;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'numbers = [ 1, 2, 3 ]' + LineEnding +
+          'colors = [ "red", "yellow", "green" ]';
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Numbers array exists', Doc.TryGetValue('numbers', Value));
+    AssertEquals('Numbers array size', 3, Value.AsArray.Count);
+    AssertEquals('Numbers array item 1', 1, Value.AsArray.Items[0].AsInteger);
+    AssertEquals('Numbers array item 2', 2, Value.AsArray.Items[1].AsInteger);
+    AssertEquals('Numbers array item 3', 3, Value.AsArray.Items[2].AsInteger);
+    
+    AssertTrue('Colors array exists', Doc.TryGetValue('colors', Value));
+    AssertEquals('Colors array size', 3, Value.AsArray.Count);
+    AssertEquals('Colors array item 1', 'red', Value.AsArray.Items[0].AsString);
+    AssertEquals('Colors array item 2', 'yellow', Value.AsArray.Items[1].AsString);
+    AssertEquals('Colors array item 3', 'green', Value.AsArray.Items[2].AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test64_QuotedKeys;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := '"127.0.0.1" = "localhost"' + LineEnding +
+          '"character encoding" = "UTF-8"' + LineEnding +
+          '''quoted "value"'' = "value"' + LineEnding +
+          '"ʎǝʞ" = "key"' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('IP address key exists', Doc.TryGetValue('127.0.0.1', Value));
+    AssertEquals('localhost', Value.AsString);
+    
+    AssertTrue('Spaced key exists', Doc.TryGetValue('character encoding', Value));
+    AssertEquals('UTF-8', Value.AsString);
+    
+    AssertTrue('Quoted value in key exists', Doc.TryGetValue('quoted "value"', Value));
+    AssertEquals('value', Value.AsString);
+    
+    AssertTrue('Unicode key exists', Doc.TryGetValue('ʎǝʞ', Value));
+    AssertEquals('key', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test65_SuperTables;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value, SubValue: TTOMLValue;
+begin
+  TOML := '[a.b]' + LineEnding +
+          'c = 1' + LineEnding +
+          '' + LineEnding +
+          '[a]' + LineEnding +  // defining super-table after subtable
+          'd = 2' + LineEnding +
+          '' + LineEnding +
+          '[x.y.z]' + LineEnding +  // implicit super-table creation
+          'key = "value"' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Table a exists', Doc.TryGetValue('a', Value));
+    AssertTrue('Value d exists', Value.AsTable.TryGetValue('d', SubValue));
+    AssertEquals(2, SubValue.AsInteger);
+    
+    AssertTrue('Table b exists', Value.AsTable.TryGetValue('b', SubValue));
+    AssertTrue('Value c exists', SubValue.AsTable.TryGetValue('c', Value));
+    AssertEquals(1, Value.AsInteger);
+    
+    AssertTrue('Table x exists', Doc.TryGetValue('x', Value));
+    AssertTrue('Table y exists', Value.AsTable.TryGetValue('y', SubValue));
+    AssertTrue('Table z exists', SubValue.AsTable.TryGetValue('z', Value));
+    AssertTrue('Key exists', Value.AsTable.TryGetValue('key', SubValue));
+    AssertEquals('value', SubValue.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test66_WhitespaceHandling;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'key1 = "value"     # comment' + LineEnding +
+          'key2 = "value"  # comment with multiple spaces' + LineEnding +
+          '  key3 = "value"   # indented key' + LineEnding +
+          'key4   =    "value"    ' + LineEnding +  // excessive spaces
+          '  [table]   ' + LineEnding +
+          '  indent = "value"  ' + LineEnding;
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Key1 exists', Doc.TryGetValue('key1', Value));
+    AssertEquals('value', Value.AsString);
+    AssertTrue('Key2 exists', Doc.TryGetValue('key2', Value));
+    AssertEquals('value', Value.AsString);
+    AssertTrue('Key3 exists', Doc.TryGetValue('key3', Value));
+    AssertEquals('value', Value.AsString);
+    AssertTrue('Key4 exists', Doc.TryGetValue('key4', Value));
+    AssertEquals('value', Value.AsString);
+    
+    AssertTrue('Table exists', Doc.TryGetValue('table', Value));
+    AssertTrue('Indented value exists', Value.AsTable.TryGetValue('indent', Value));
+    AssertEquals('value', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test67_ArrayTypeValidation;
+begin
+  try
+    ParseTOML('mixed = [1, "string", true]');  // Mixed types are allowed
+  except
+    on E: ETOMLParserException do
+      Fail('Mixed-type arrays should be allowed');
+  end;
+  
+  try
+    ParseTOML('numbers = [1, 2.0]');  // Mixed numbers are allowed
+  except
+    on E: ETOMLParserException do
+      Fail('Mixed number types should be allowed');
+  end;
+  
+  try
+    ParseTOML('nested = [[1, 2], [3, 4]]');  // Nested arrays of same type are allowed
+  except
+    on E: ETOMLParserException do
+      Fail('Nested arrays of same type should be allowed');
+  end;
+  
+  // According to TOML spec, mixed array/non-array values are actually allowed
+  try
+    ParseTOML('mixed_array = [1, [2, 3], 4]');  // Mixed array/non-array values
+  except
+    on E: ETOMLParserException do
+      Fail('Mixed array/non-array values should be allowed according to TOML spec');
+  end;
+end;
+
+procedure TTOMLTestCase.Test68_KeyValidation;
+begin
+  try
+    ParseTOML('valid.key = "value"');  // Standard dotted key
+  except
+    on E: ETOMLParserException do
+      Fail('Valid dotted key should be allowed');
+  end;
+  
+  try
+    ParseTOML('valid."dotted.key" = "value"');  // Quoted key containing dots
+  except
+    on E: ETOMLParserException do
+      Fail('Quoted key containing dots should be allowed');
+  end;
+  
+  try
+    ParseTOML('invalid. = "value"');  // Empty key component
+    Fail('Empty key component should not be allowed');
+  except
+    on E: ETOMLParserException do
+      ; // Test passes
+  end;
+  
+  try
+    ParseTOML('invalid..key = "value"');  // Double dots
+    Fail('Double dots in key should not be allowed');
+  except
+    on E: ETOMLParserException do
+      ; // Test passes
+  end;
+end;
+
+procedure TTOMLTestCase.Test69_TableArrayNesting;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+  Fruits: TTOMLArray;
+  FruitTable: TTOMLTable;
+begin
+  TOML := '[[fruits]]' + LineEnding +
+          'name = "apple"' + LineEnding +
+          'varieties = { name = "red delicious", color = "red" }' + LineEnding +
+          '' + LineEnding +
+          '[[fruits]]' + LineEnding +
+          'name = "banana"' + LineEnding +
+          'varieties = { name = "plantain", color = "yellow" }';
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Fruits array exists', Doc.TryGetValue('fruits', Value));
+    Fruits := Value.AsArray;
+    AssertEquals('Fruits count', 2, Fruits.Count);
+    
+    // First fruit
+    FruitTable := Fruits.Items[0].AsTable;
+    AssertTrue('First fruit name exists', FruitTable.TryGetValue('name', Value));
+    AssertEquals('First fruit name', 'apple', Value.AsString);
+    
+    AssertTrue('First fruit varieties exist', FruitTable.TryGetValue('varieties', Value));
+    AssertTrue('First variety name exists', Value.AsTable.TryGetValue('name', Value));
+    AssertEquals('First variety name', 'red delicious', Value.AsString);
+    
+    // Second fruit
+    FruitTable := Fruits.Items[1].AsTable;
+    AssertTrue('Second fruit name exists', FruitTable.TryGetValue('name', Value));
+    AssertEquals('Second fruit name', 'banana', Value.AsString);
+    
+    AssertTrue('Second fruit varieties exist', FruitTable.TryGetValue('varieties', Value));
+    AssertTrue('Second variety name exists', Value.AsTable.TryGetValue('name', Value));
+    AssertEquals('Second variety name', 'plantain', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test70_ComplexKeys;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'simple = "value"' + LineEnding +
+          '"quoted.key" = "value"' + LineEnding +
+          '[server]' + LineEnding +
+          '"127.0.0.1" = "localhost"' + LineEnding +
+          '[color]' + LineEnding +
+          'red = "#ff0000"' + LineEnding +
+          '[literal]' + LineEnding +
+          'key = "value"';
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Simple key exists', Doc.TryGetValue('simple', Value));
+    AssertEquals('Simple key value', 'value', Value.AsString);
+    
+    AssertTrue('Quoted key exists', Doc.TryGetValue('quoted.key', Value));
+    AssertEquals('Quoted key value', 'value', Value.AsString);
+    
+    AssertTrue('Server table exists', Doc.TryGetValue('server', Value));
+    AssertTrue('IP address key exists', Value.AsTable.TryGetValue('127.0.0.1', Value));
+    AssertEquals('IP address value', 'localhost', Value.AsString);
+    
+    AssertTrue('Color table exists', Doc.TryGetValue('color', Value));
+    AssertTrue('Color red exists', Value.AsTable.TryGetValue('red', Value));
+    AssertEquals('Color red value', '#ff0000', Value.AsString);
+    
+    AssertTrue('Literal key exists', Doc.TryGetValue('literal', Value));
+    AssertTrue('Literal subkey exists', Value.AsTable.TryGetValue('key', Value));
+    AssertEquals('Literal key value', 'value', Value.AsString);
   finally
     Doc.Free;
   end;

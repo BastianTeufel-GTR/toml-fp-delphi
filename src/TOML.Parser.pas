@@ -332,6 +332,38 @@ begin
   if Peek in ['+', '-'] then
     TempValue := TempValue + Advance;
   
+  // Check for special float values (inf, nan)
+  if (Peek = 'i') and (PeekNext = 'n') then
+  begin
+    // Check for 'inf'
+    TempValue := TempValue + Advance;  // 'i'
+    TempValue := TempValue + Advance;  // 'n'
+    if Peek = 'f' then
+    begin
+      TempValue := TempValue + Advance;  // 'f'
+      Result.TokenType := ttFloat;
+      Result.Value := TempValue;
+      Result.Line := FLine;
+      Result.Column := StartColumn;
+      Exit;
+    end;
+  end
+  else if (Peek = 'n') and (PeekNext = 'a') then
+  begin
+    // Check for 'nan'
+    TempValue := TempValue + Advance;  // 'n'
+    TempValue := TempValue + Advance;  // 'a'
+    if Peek = 'n' then
+    begin
+      TempValue := TempValue + Advance;  // 'n'
+      Result.TokenType := ttFloat;
+      Result.Value := TempValue;
+      Result.Line := FLine;
+      Result.Column := StartColumn;
+      Exit;
+    end;
+  end;
+  
   // Check for hex, octal, or binary
   if (Peek = '0') and not IsAtEnd then
   begin
@@ -760,18 +792,48 @@ var
 begin
   Value := FCurrentToken.Value;
   
-  // Remove underscores from the value
-  i := 1;
-  while i <= Length(Value) do
+  // Handle special float values
+  if FCurrentToken.TokenType = ttFloat then
   begin
-    if Value[i] = '_' then
-      Delete(Value, i, 1)
+    // Remove underscores from the value
+    i := 1;
+    while i <= Length(Value) do
+    begin
+      if Value[i] = '_' then
+        Delete(Value, i, 1)
+      else
+        Inc(i);
+    end;
+    
+    // Check for special values
+    if SameText(Value, 'inf') or SameText(Value, '+inf') then
+      Result := TTOMLFloat.Create(Infinity)
+    else if SameText(Value, '-inf') then
+      Result := TTOMLFloat.Create(NegInfinity)
+    else if SameText(Value, 'nan') or SameText(Value, '+nan') or SameText(Value, '-nan') then
+      Result := TTOMLFloat.Create(NaN)
     else
-      Inc(i);
-  end;
-  
-  if FCurrentToken.TokenType = ttInteger then
+    begin
+      Val(Value, FloatValue, Code);
+      if Code = 0 then
+        Result := TTOMLFloat.Create(FloatValue)
+      else
+        raise ETOMLParserException.CreateFmt('Invalid float value: %s at line %d, column %d',
+          [Value, FCurrentToken.Line, FCurrentToken.Column]);
+    end;
+  end
+  else // Integer handling
   begin
+    // Remove underscores from the value
+    i := 1;
+    while i <= Length(Value) do
+    begin
+      if Value[i] = '_' then
+        Delete(Value, i, 1)
+      else
+        Inc(i);
+    end;
+    
     IsNegative := (Value <> '') and (Value[1] = '-');
     if IsNegative then
       Delete(Value, 1, 1);
@@ -807,15 +869,6 @@ begin
     end
     else
       raise ETOMLParserException.CreateFmt('Invalid integer value: %s at line %d, column %d',
-        [Value, FCurrentToken.Line, FCurrentToken.Column]);
-  end
-  else
-  begin
-    Val(Value, FloatValue, Code);
-    if Code = 0 then
-      Result := TTOMLFloat.Create(FloatValue)
-    else
-      raise ETOMLParserException.CreateFmt('Invalid float value: %s at line %d, column %d',
         [Value, FCurrentToken.Line, FCurrentToken.Column]);
   end;
   
