@@ -5,7 +5,45 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
 
-A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, fully compliant with TOML v1.0.0 specification.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, _almost_ fully compliant with the TOML v1.0.0 specification.
+
+> [!NOTE] 
+> 
+> Our extensive test suite (53 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+
+## Table of Contents
+
+- [TOML Parser for Free Pascal](#toml-parser-for-free-pascal)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [To Do / In Progress](#to-do--in-progress)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+    - [Requirements](#requirements-1)
+    - [Steps](#steps)
+  - [Quick Start](#quick-start)
+    - [Basic Usage](#basic-usage)
+    - [Writing TOML Files](#writing-toml-files)
+  - [Documentation](#documentation)
+    - [Common Use Cases](#common-use-cases)
+      - [Working with Arrays](#working-with-arrays)
+      - [Nested Tables](#nested-tables)
+      - [Serializing Complex Structures](#serializing-complex-structures)
+  - [API Reference](#api-reference)
+    - [Types](#types)
+    - [Helper Functions for Creating TOML Values](#helper-functions-for-creating-toml-values)
+    - [Parsing Functions](#parsing-functions)
+    - [Serialization Functions](#serialization-functions)
+  - [Testing](#testing)
+    - [Test Coverage Overview](#test-coverage-overview)
+    - [Sample Test Output](#sample-test-output)
+  - [Examples](#examples)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+
+
 
 ## Overview
 
@@ -20,6 +58,12 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 - **Serialization:** Convert Pascal objects to TOML and back
 - **Documentation:** Comprehensive examples and API documentation
 - **Test Suite:** Comprehensive test suite (53 items)
+
+## To Do / In Progress
+
+- [ ] Complex Structures: Nested tables, array of tables, and dotted keys.
+- [ ] Serialization Accuracy: Verifying that objects serialize back into correct TOML format.
+- [ ] Error Handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms.
 
 ## Requirements
 
@@ -135,7 +179,7 @@ begin
 end.
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### Common Use Cases
 
@@ -384,7 +428,7 @@ Serializes a `TTOMLValue` and saves it to a file.
   end;
 ```
 
-## 🧪 Testing
+## Testing
 
 The library includes a comprehensive test suite (53 items). 
 
@@ -392,6 +436,21 @@ To run the tests:
 
 1. Open `tests/TestRunner.lpi` in Lazarus
 2. Build and run the project
+
+### Test Coverage Overview
+
+See [Test-Coverage-Overview.md](docs/Test-Coverage-Overview.md) for details.
+
+- Basic Types:
+  - Strings, Integers, Floats, Booleans, DateTime
+- Advanced Structures:
+  - Multiline and Literal Strings
+  - Homogeneous and Mixed-Type Arrays
+  - Nested and Inline Tables
+- Serialization:
+  - Accurate conversion of Pascal objects to TOML format and vice versa
+- Error Handling:
+  - Robust tests for invalid inputs, duplicate keys, and other edge cases
 
 ### Sample Test Output
 
@@ -448,6 +507,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 - TOML specification creators and maintainers
 - Free Pascal and Lazarus communities
 - All contributors to this project
-
 
 

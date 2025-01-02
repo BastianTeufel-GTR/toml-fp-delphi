@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release
-- Full TOML v1.0.0 specification support
+- Adhere to TOML v1.0.0 specification (covering all essential data types, structures, and edge cases.)
 - Parsing and serialization functionality
-- Comprehensive test suite
+- Comprehensive test suite (53 items)
 - Documentation and examples
