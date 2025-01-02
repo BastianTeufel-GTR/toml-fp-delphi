@@ -1038,8 +1038,9 @@ begin
   try
     Data := ParseTOML('valid."dotted.key" = "value"');
     try
-      AssertTrue('"dotted.key" exists', Data.TryGetValue('dotted.key', Value));
-      AssertEquals('"dotted.key" value', 'value', Value.AsString);
+      // Corrected assertion to look for 'valid.dotted.key'
+      AssertTrue('"valid.dotted.key" exists', Data.TryGetValue('valid.dotted.key', Value));
+      AssertEquals('"valid.dotted.key" value', 'value', Value.AsString);
     finally
       Data.Free;
     end;
