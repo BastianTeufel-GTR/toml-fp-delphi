@@ -1,105 +1,54 @@
 # TOML Parser for Free Pascal
 
-A TOML v1.0.0 parser and serializer implementation for Free Pascal (FPC). This library provides a type-safe and easy-to-use interface for working with TOML files in Free Pascal applications.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
+[![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
+
+TOML-FP is a robust and efficient TOML (Tom's Obvious, Minimal Language) parser and serializer written in Free Pascal. It adheres to the TOML v1.0.0 specification, providing comprehensive support for various data types, arrays, tables, and more. Whether you're configuring applications or handling complex data structures, TOML-FP offers a reliable solution for your parsing and serialization needs.
 
 ## Features
 
-- Full support for TOML v1.0.0 specification
-- Type-safe parsing and serialization
-- Easy-to-use API
-- No external dependencies
-- Comprehensive error handling
-- Support for all TOML data types:
-  - Strings (basic and multi-line)
-  - Integers
-  - Floats
-  - Booleans
-  - Dates and Times
-  - Arrays
-  - Tables (including inline tables)
-
-## Requirements
-
-- Free Pascal Compiler (FPC) 3.2.2 or later
+- Comprehensive Type Support: Handles strings, integers, floats, booleans, datetime, arrays, and tables.
+- Array and Table Handling: Supports mixed-type arrays, nested tables, and array of tables.
+- Serialization: Easily convert TOML data structures back into TOML-formatted strings or files.
+- Error Handling: Provides detailed exceptions for parsing and serialization errors.
+- Memory Management: Efficiently manages memory with no leaks, ensuring optimal performance.
+- Compliant with TOML v1.0.0: Fully adheres to the TOML specification for compatibility and reliability.
 
 ## Installation
 
-1. Clone this repository or download the source files
-2. Add the `src` directory to your project's search path
-3. Add `TOML` to your unit's uses clause
 
-## Usage
+1. Clone the Repository:
 
-### Parsing TOML
+```bash
+   git clone https://github.com/yourusername/toml-fp.git
+```
+
+2. Add the following units to your project path:
+- TOML.pas
+- TOML.Types.pas
+- TOML.Parser.pas
+- TOML.Serializer.pas
+
+3. Add the following units to your project uses clause:
 
 ```pascal
 uses
-  TOML;
-
-var
-  TOMLData: TTOMLTable;
-begin
-  // Parse from string
-  TOMLData := ParseTOML('key = "value"');
-  try
-    // Use the data...
-  finally
-    TOMLData.Free;
-  end;
-
-  // Parse from file
-  TOMLData := ParseTOMLFromFile('config.toml');
-  try
-    // Use the data...
-  finally
-    TOMLData.Free;
-  end;
-end;
+  TOML, TOML.Types, TOML.Parser, TOML.Serializer;
 ```
 
-### Creating TOML Data
+4. Configure Compiler Settings:
+
+Ensure your Free Pascal Compiler (FPC) is set to mode objfpc with H+ string handling by including the following directives at the top of your source files:
 
 ```pascal
-uses
-  TOML;
-
-var
-  Table: TTOMLTable;
-  Array: TTOMLArray;
-begin
-  Table := TOMLTable;
-  try
-    // Add simple values
-    Table.Add('string', TOMLString('Hello, World!'));
-    Table.Add('integer', TOMLInteger(42));
-    Table.Add('float', TOMLFloat(3.14));
-    Table.Add('boolean', TOMLBoolean(True));
-    Table.Add('date', TOMLDateTime(Now));
-
-    // Create and add an array
-    Array := TOMLArray;
-    Array.Add(TOMLInteger(1));
-    Array.Add(TOMLInteger(2));
-    Array.Add(TOMLInteger(3));
-    Table.Add('numbers', Array);
-
-    // Create nested table
-    var NestedTable := TOMLTable;
-    NestedTable.Add('nested_key', TOMLString('nested_value'));
-    Table.Add('nested', NestedTable);
-
-    // Serialize to string
-    WriteLn(SerializeTOML(Table));
-
-    // Save to file
-    SerializeTOMLToFile(Table, 'output.toml');
-  finally
-    Table.Free;
-  end;
-end;
+{$mode objfpc}{$H+}{$J-}
 ```
 
-### Reading TOML Values
+## Quick Start
+
+### Parsing TOML Strings
+Parse TOML-formatted strings into TTOMLTable objects, allowing you to access and manipulate the data programmatically.
 
 ```pascal
 uses
@@ -109,54 +58,42 @@ var
   TOMLData: TTOMLTable;
   Value: TTOMLValue;
 begin
-  TOMLData := ParseTOMLFromFile('config.toml');
+  TOMLData := ParseTOML('key = "Hello, World!"');
   try
-    // Reading values with type checking
-    if TOMLData.TryGetValue('string_key', Value) then
-      WriteLn('String value: ', Value.AsString);
-
-    if TOMLData.TryGetValue('int_key', Value) then
-      WriteLn('Integer value: ', Value.AsInteger);
-
-    if TOMLData.TryGetValue('float_key', Value) then
-      WriteLn('Float value: ', Value.AsFloat);
-
-    if TOMLData.TryGetValue('bool_key', Value) then
-      WriteLn('Boolean value: ', Value.AsBoolean);
-
-    if TOMLData.TryGetValue('date_key', Value) then
-      WriteLn('Date value: ', DateTimeToStr(Value.AsDateTime));
-
-    // Reading arrays
-    if TOMLData.TryGetValue('array_key', Value) then
-    begin
-      var Array := Value.AsArray;
-      for var i := 0 to Array.Count - 1 do
-        WriteLn('Array item ', i, ': ', Array.GetItem(i).AsString);
-    end;
-
-    // Reading nested tables
-    if TOMLData.TryGetValue('table_key', Value) then
-    begin
-      var Table := Value.AsTable;
-      if Table.TryGetValue('nested_key', Value) then
-        WriteLn('Nested value: ', Value.AsString);
-    end;
+    if TOMLData.TryGetValue('key', Value) then
+      WriteLn('Value: ', Value.AsString)
+    else
+      WriteLn('Key not found.');
   finally
     TOMLData.Free;
   end;
-end;
+end.
+``` 
+
+### Serializing TOML Data
+Convert TTOMLTable objects back into TOML-formatted strings or save them to files.
+
+```pascal
+uses
+  TOML;
+
+var
+  Table: TTOMLTable;
+  TOMLString: string;
+begin
+  Table := TOMLTable;
+  try
+    Table.Add('key', TOMLString('value'));
+    TOMLString := SerializeTOML(Table);
+    WriteLn(TOMLString);
+  finally
+    Table.Free;
+  end;
+end.
 ```
 
-## Error Handling
-
-The library uses exception classes for error handling:
-
-- `ETOMLException`: Base exception class for all TOML-related errors
-- `ETOMLParserException`: Raised when parsing errors occur
-- `ETOMLSerializerException`: Raised when serialization errors occur
-
-Example:
+### Handling Errors
+The library uses specific exception classes to handle errors gracefully. It's essential to catch these exceptions to ensure your application can respond appropriately to parsing or serialization issues.
 
 ```pascal
 uses
@@ -168,7 +105,7 @@ begin
   try
     TOMLData := ParseTOML('invalid = toml] content');
     try
-      // Use the data...
+      // Use the parsed data...
     finally
       TOMLData.Free;
     end;
@@ -178,13 +115,131 @@ begin
     on E: ETOMLException do
       WriteLn('TOML error: ', E.Message);
   end;
-end;
+end.
+``` 
+
+## API Reference
+### Helper Functions for Creating TOML Values
+- TOMLString
+
+```pascal
+  function TOMLString(const AValue: string): TTOMLString;
+```
+Creates a TOML string value.
+
+- TOMLInteger
+
+```pascal
+  function TOMLInteger(const AValue: Int64): TTOMLInteger;
+```
+Creates a TOML integer value.
+
+- TOMLFloat
+
+```pascal
+  function TOMLFloat(const AValue: Double): TTOMLFloat;
+```
+Creates a TOML float value.
+
+- TOMLBoolean 
+
+```pascal
+    function TOMLBoolean(const AValue: Boolean): TTOMLBoolean;
+```
+Creates a TOML boolean value.
+
+- TOMLDateTime
+
+```pascal
+    function TOMLDateTime(const AValue: TDateTime): TTOMLDateTime;
+```
+Creates a TOML datetime value.
+
+- TOMLArray 
+
+```pascal
+  function TOMLArray: TTOMLArray;
+```
+Creates a TOML array.
+
+- TOMLTable
+
+```pascal
+  function TOMLTable: TTOMLTable;
+```
+Creates a TOML table.
+
+### Parsing Functions
+- ParseTOML
+
+```pascal
+  function ParseTOML(const ATOML: string): TTOMLTable;
+```
+Parses a TOML-formatted string into a `TTOMLTable` object.
+
+```pascal
+  function ParseTOML(const ATOML: string): TTOMLTable;
+  begin
+    Result := TOML.Parser.ParseTOMLString(ATOML);
+  end;
 ```
 
-## Contributing
+- ParseTOMLFromFile
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```pascal
+  function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
+```
+Parses a TOML file into a `TTOMLTable` object.
 
-## License
+```pascal
+  function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
+  var
+    FileStream: TFileStream;
+    StringStream: TStringStream;
+  begin
+    FileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
+    try
+      StringStream := TStringStream.Create('');
+      try
+        StringStream.CopyFrom(FileStream, 0);
+        Result := ParseTOMLString(StringStream.DataString);
+      finally
+        StringStream.Free;
+      end;
+    finally
+      FileStream.Free;
+    end;
+  end;
+```
 
-This library is released under the MIT License. See the LICENSE file for details. 
+### Serialization Functions
+- SerializeTOML
+
+```pascal
+  function SerializeTOML(const AValue: TTOMLValue): string;
+```
+Serializes a `TTOMLValue` into a TOML-formatted string.
+
+```pascal
+  function SerializeTOML(const AValue: TTOMLValue): string;
+  begin
+    Result := TOML.Serializer.SerializeTOML(AValue);
+  end;
+```
+
+- SerializeTOMLToFile
+
+```pascal
+  function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
+```
+Serializes a `TTOMLValue` and saves it to a file.
+
+```pascal
+  function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
+  begin
+    Result := TOML.Serializer.SerializeTOMLToFile(AValue, AFileName);
+  end;
+```
+
+
+
