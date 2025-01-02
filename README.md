@@ -62,7 +62,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 ## To Do / In Progress
 
 - [ ] More tests for complex structures: Nested tables, array of tables, and dotted keys.
-- [ ] More tests for serialization accuracy: Verifying that objects serialize back into correct TOML format.
+- [ ] More tests for serializing TOML to file: Making sure objects save back into the correct TOML format.
 - [ ] More tests for error handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms.
 
 ## Requirements
