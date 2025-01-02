@@ -1,0 +1,37 @@
+# Free Pascal compiled files
+*.o
+*.ppu
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.compiled
+
+# Lazarus specific
+*.lps
+*.res
+backup/
+lib/
+*.dbg
+
+# IDE specific
+.vscode/
+.idea/
+
+# Debug files
+*.dbg
+*.dSYM/
+
+# Temporary files
+*.~*
+*.bak
+*.tmp
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Project specific binary output
+tests/TestRunner
+tests/TestRunner.exe 
