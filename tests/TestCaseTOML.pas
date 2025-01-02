@@ -718,14 +718,8 @@ var
 begin
   TOML := '[[fruits]]' + LineEnding +
           'name = "apple"' + LineEnding +
-          '' + LineEnding +
-          '[fruits.physical]' + LineEnding +
-          'color = "red"' + LineEnding +
-          'shape = "round"' + LineEnding +
-          '' + LineEnding +
-          '[fruits.varieties]' + LineEnding +
-          'name = "red delicious"' + LineEnding +
-          'color = "red"' + LineEnding;
+          'physical = { color = "red", shape = "round" }' + LineEnding +
+          'varieties = { name = "red delicious", color = "red" }' + LineEnding;
   Doc := ParseTOML(TOML);
   try
     AssertTrue('Fruits array exists', Doc.TryGetValue('fruits', Value));
