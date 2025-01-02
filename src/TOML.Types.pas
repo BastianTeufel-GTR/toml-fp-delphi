@@ -1,6 +1,6 @@
 unit TOML.Types;
 
-{$mode objfpc}{$H+}
+{$mode objfpc}{$H+}{$J-}
 {$modeswitch typehelpers}
 {$modeswitch advancedrecords}
 
