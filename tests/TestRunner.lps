@@ -11,16 +11,15 @@
         <EditorIndex Value="2"/>
         <TopLine Value="6"/>
         <CursorPos X="4" Y="17"/>
-        <UsageCount Value="41"/>
+        <UsageCount Value="44"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="TestCaseTOML.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="67"/>
         <CursorPos X="40" Y="77"/>
-        <UsageCount Value="41"/>
+        <UsageCount Value="44"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -33,7 +32,7 @@
         <EditorIndex Value="1"/>
         <TopLine Value="1211"/>
         <CursorPos X="36" Y="1217"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -41,15 +40,16 @@
         <EditorIndex Value="4"/>
         <TopLine Value="219"/>
         <CursorPos X="8" Y="229"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="..\src\TOML.Types.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <TopLine Value="280"/>
-        <CursorPos X="21" Y="333"/>
-        <UsageCount Value="12"/>
+        <CursorPos X="4" Y="289"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>

@@ -54,14 +54,16 @@ Ensure your Free Pascal Compiler (FPC) is set to mode objfpc with H+ string hand
 ### Basic Usage
 
 ```pascal
-program Example;
+program BasicParseTOML;
+
 {$mode objfpc}{$H+}{$J-}
 
 uses
-  TOML;
+  Classes, TOML;
 
 var
   Config: TTOMLTable;
+  ProjectValue: TTOMLValue;
   ProjectTable: TTOMLTable;
   ProjectName: TTOMLValue;
 begin
@@ -69,12 +71,16 @@ begin
   Config := ParseTOMLFromFile('config.toml');
   try
     // Access nested values safely
-    if Config.TryGetValue('project', ProjectTable) and 
-       (ProjectTable is TTOMLTable) and
-       TTOMLTable(ProjectTable).TryGetValue('name', ProjectName) then
+    if Config.TryGetValue('project', ProjectValue) and
+       (ProjectValue is TTOMLTable) then
     begin
-      WriteLn('Project Name: ', ProjectName.AsString);
-    end else
+      ProjectTable := TTOMLTable(ProjectValue);
+      if ProjectTable.TryGetValue('name', ProjectName) then
+        WriteLn('Project Name: ', ProjectName.AsString)
+      else
+        WriteLn('Project name not found');
+    end
+    else
       WriteLn('Project configuration not found');
   finally
     Config.Free;
