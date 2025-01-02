@@ -333,34 +333,40 @@ begin
     TempValue := TempValue + Advance;
   
   // Check for special float values (inf, nan)
-  if (Peek = 'i') and (PeekNext = 'n') then
+  if (Peek = 'i') then
   begin
     // Check for 'inf'
     TempValue := TempValue + Advance;  // 'i'
-    TempValue := TempValue + Advance;  // 'n'
-    if Peek = 'f' then
+    if (Peek = 'n') then
     begin
-      TempValue := TempValue + Advance;  // 'f'
-      Result.TokenType := ttFloat;
-      Result.Value := TempValue;
-      Result.Line := FLine;
-      Result.Column := StartColumn;
-      Exit;
+      TempValue := TempValue + Advance;  // 'n'
+      if Peek = 'f' then
+      begin
+        TempValue := TempValue + Advance;  // 'f'
+        Result.TokenType := ttFloat;
+        Result.Value := TempValue;
+        Result.Line := FLine;
+        Result.Column := StartColumn;
+        Exit;
+      end;
     end;
   end
-  else if (Peek = 'n') and (PeekNext = 'a') then
+  else if (Peek = 'n') then
   begin
     // Check for 'nan'
     TempValue := TempValue + Advance;  // 'n'
-    TempValue := TempValue + Advance;  // 'a'
-    if Peek = 'n' then
+    if (Peek = 'a') then
     begin
-      TempValue := TempValue + Advance;  // 'n'
-      Result.TokenType := ttFloat;
-      Result.Value := TempValue;
-      Result.Line := FLine;
-      Result.Column := StartColumn;
-      Exit;
+      TempValue := TempValue + Advance;  // 'a'
+      if Peek = 'n' then
+      begin
+        TempValue := TempValue + Advance;  // 'n'
+        Result.TokenType := ttFloat;
+        Result.Value := TempValue;
+        Result.Line := FLine;
+        Result.Column := StartColumn;
+        Exit;
+      end;
     end;
   end;
   
@@ -675,7 +681,20 @@ begin
     '+', '-': Result := ScanNumber;
     else
       if IsAlpha(Peek) then
-        Result := ScanIdentifier
+      begin
+        // Save current position
+        SavePos := FPosition;
+        SaveLine := FLine;
+        SaveCol := FColumn;
+        
+        Result := ScanIdentifier;
+        
+        // Check if it's a special float value
+        if (Result.Value = 'inf') or (Result.Value = 'nan') then
+        begin
+          Result.TokenType := ttFloat;
+        end;
+      end
       else
         raise ETOMLParserException.CreateFmt('Unexpected character: %s at line %d, column %d',
           [Peek, FLine, FColumn]);
@@ -807,20 +826,19 @@ begin
     
     // Check for special values
     if SameText(Value, 'inf') or SameText(Value, '+inf') then
-      Result := TTOMLFloat.Create(1.0/0.0)  // Creates positive infinity
+      FloatValue := 1.0/0.0  // Creates positive infinity
     else if SameText(Value, '-inf') then
-      Result := TTOMLFloat.Create(-1.0/0.0)  // Creates negative infinity
+      FloatValue := -1.0/0.0  // Creates negative infinity
     else if SameText(Value, 'nan') or SameText(Value, '+nan') or SameText(Value, '-nan') then
-      Result := TTOMLFloat.Create(0.0/0.0)  // Creates NaN
+      FloatValue := 0.0/0.0  // Creates NaN
     else
     begin
       Val(Value, FloatValue, Code);
-      if Code = 0 then
-        Result := TTOMLFloat.Create(FloatValue)
-      else
+      if Code <> 0 then
         raise ETOMLParserException.CreateFmt('Invalid float value: %s at line %d, column %d',
           [Value, FCurrentToken.Line, FCurrentToken.Column]);
     end;
+    Result := TTOMLFloat.Create(FloatValue);
   end
   else // Integer handling
   begin
@@ -951,6 +969,36 @@ begin
             MilliSecond := StrToInt(Copy(FracStr + '000', 1, 3));
         end;
       end;
+    end
+    else if not HasDate then
+    begin
+      // Try to parse as time only (HH:MM:SS[.fraction])
+      if (P <= Length(DateStr)) and (DateStr[P] = 'T') then
+      begin
+        Inc(P);
+        if (P + 7 <= Length(DateStr)) and (DateStr[P+2] = ':') and (DateStr[P+5] = ':') then
+        begin
+          Hour := StrToInt(Copy(DateStr, P, 2));
+          Minute := StrToInt(Copy(DateStr, P+3, 2));
+          Second := StrToInt(Copy(DateStr, P+6, 2));
+          HasTime := True;
+          P := P + 8;
+          
+          // Parse fractional seconds if present
+          if (P <= Length(DateStr)) and (DateStr[P] = '.') then
+          begin
+            Inc(P);
+            FracStr := '';
+            while (P <= Length(DateStr)) and (DateStr[P] in ['0'..'9']) do
+            begin
+              FracStr := FracStr + DateStr[P];
+              Inc(P);
+            end;
+            if Length(FracStr) > 0 then
+              MilliSecond := StrToInt(Copy(FracStr + '000', 1, 3));
+          end;
+        end;
+      end;
     end;
     
     // Create DateTime value
@@ -1041,13 +1089,13 @@ var
   Value: TTOMLValue;
 begin
   Key := ParseKey;
-  
-  while Match(ttDot) do
-    Key := Key + '.' + ParseKey;
-    
-  Expect(ttEqual);
+  Value := nil;
   
   try
+    while Match(ttDot) do
+      Key := Key + '.' + ParseKey;
+      
+    Expect(ttEqual);
     Value := ParseValue;
     Result := TTOMLKeyValuePair.Create(Key, Value);
   except

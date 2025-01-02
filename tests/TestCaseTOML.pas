@@ -64,7 +64,9 @@ type
     procedure Test60_DottedTableArray;
     
     { Additional TOML v1.0.0 Specification Tests }
-    procedure Test61_SpecialFloatValues;
+    procedure Test61_PositiveInf;
+    procedure Test61_NegativeInf;
+    procedure Test61_NotANumber;
     procedure Test62_OffsetDateTime;
     procedure Test63_MultilineArray;
     procedure Test64_QuotedKeys;
@@ -756,23 +758,47 @@ begin
   end;
 end;
 
-procedure TTOMLTestCase.Test61_SpecialFloatValues;
+procedure TTOMLTestCase.Test61_PositiveInf;
 var
   TOML: string;
   Doc: TTOMLTable;
   Value: TTOMLValue;
 begin
-  TOML := 'pos_inf = inf' + LineEnding +
-          'neg_inf = -inf' + LineEnding +
-          'not_num = nan';
+  TOML := 'pos_inf = inf';
   Doc := ParseTOML(TOML);
   try
     AssertTrue('Positive infinity exists', Doc.TryGetValue('pos_inf', Value));
     AssertTrue('Positive infinity check', IsInfinite(Value.AsFloat) and (Value.AsFloat > 0));
-    
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test61_NegativeInf;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'neg_inf = -inf';
+  Doc := ParseTOML(TOML);
+  try
     AssertTrue('Negative infinity exists', Doc.TryGetValue('neg_inf', Value));
     AssertTrue('Negative infinity check', IsInfinite(Value.AsFloat) and (Value.AsFloat < 0));
-    
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test61_NotANumber;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := 'not_num = nan';
+  Doc := ParseTOML(TOML);
+  try
     AssertTrue('NaN exists', Doc.TryGetValue('not_num', Value));
     AssertTrue('NaN check', IsNan(Value.AsFloat));
   finally

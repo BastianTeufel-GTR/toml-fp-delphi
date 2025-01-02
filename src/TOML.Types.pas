@@ -337,8 +337,12 @@ procedure TTOMLTable.Add(const AKey: string; AValue: TTOMLValue);
 var
   ExistingValue: TTOMLValue;
 begin
+  if FItems = nil then
+    FItems := TTOMLTableDict.Create;
+    
   if FItems.TryGetValue(AKey, ExistingValue) then
     raise ETOMLParserException.CreateFmt('Duplicate key "%s" found', [AKey]);
+    
   FItems.AddOrSetValue(AKey, AValue);
 end;
 
