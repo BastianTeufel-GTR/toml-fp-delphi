@@ -4,52 +4,50 @@
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
 [![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
 
-TOML-FP is a robust and efficient [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer written in Free Pascal. It adheres to the TOML v1.0.0 specification, providing comprehensive support for various data types, arrays, tables, and more.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, fully compliant with TOML v1.0.0 specification.
 
-## 🚀 Features
+## Overview
 
-- Comprehensive Type Support: Handles strings, integers, floats, booleans, datetime, arrays, and tables.
-- Array and Table Handling: Supports mixed-type arrays, nested tables, and array of tables.
-- Serialization: Easily convert TOML data structures back into TOML-formatted strings or files.
-- Error Handling: Provides detailed exceptions for parsing and serialization errors.
-- Memory Management: Efficiently manages memory with no leaks, ensuring optimal performance.
-- Compliant with TOML v1.0.0: Fully adheres to the TOML specification for compatibility and reliability.
+TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
 
-## 📋 Requirements
+## Features
+
+- **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures
+- **Type-Safe API:** Strong typing with compile-time checks
+- **Memory Management:** Automatic cleanup with proper object lifecycle management
+- **Error Handling:** Detailed error messages and exception handling
+- **Serialization:** Convert Pascal objects to TOML and back
+- **Documentation:** Comprehensive examples and API documentation
+- **Test Suite:** Comprehensive test suite (53 items)
+
+## Requirements
 
 - Free Pascal Compiler 3.2.2 or later
 - Lazarus IDE 3.6 (needed for running the test runner; optional, for development)
 
-## ⚡ Quick Start
+## Installation
 
-### Installation
+### Requirements
+- Free Pascal Compiler 3.2.2 or later
+- Lazarus IDE 3.6 (optional, for development)
 
-1. Clone the Repository:
+### Steps
+1. Clone the repository:
+   
+   ```bash
+   git clone https://github.com/yourusername/toml-fp.git
+   ```
 
-```bash
-   git clone https://github.com/ikelaiah/toml-fp.git
-```
+2. Add to your project:
+   - Copy the `src` directory to your project
+   - Add units to your project's search path
+   - Add to your uses clause:
+     ```pascal
+     uses
+       TOML, TOML.Types, TOML.Parser, TOML.Serializer;
+     ```
 
-2. Add the following units to your project path:
-- TOML.pas
-- TOML.Types.pas
-- TOML.Parser.pas
-- TOML.Serializer.pas
-
-3. Add the following units to your project uses clause:
-
-```pascal
-uses
-  TOML, TOML.Types, TOML.Parser, TOML.Serializer;
-```
-
-4. Configure Compiler Settings:
-
-Ensure your Free Pascal Compiler (FPC) is set to mode objfpc with H+ string handling by including the following directives at the top of your source files:
-
-```pascal
-{$mode objfpc}{$H+}{$J-}
-```
+## Quick Start
 
 ### Basic Usage
 
@@ -103,6 +101,37 @@ revision = "1.2.1af"
 [project]
 name = "My Amazing Project"
 version = "1.0.0"
+```
+
+
+### Writing TOML Files
+```pascal
+program BasicSerializeTOML;
+
+{$mode objfpc}{$H+}{$J-}
+
+uses
+  TOML;
+
+var
+  Config: TTOMLTable;
+  Database: TTOMLTable;
+begin
+  Config := TOMLTable;
+  try
+    Database := TOMLTable;
+    Database.Add('host', TOMLString('localhost'));
+    Database.Add('port', TOMLInteger(5432));
+    Config.Add('database', Database);
+
+    if SerializeTOMLToFile(Config, 'config.toml') then
+      WriteLn('Configuration saved successfully')
+    else
+      WriteLn('Error saving configuration');
+  finally
+    Config.Free;
+  end;
+end.
 ```
 
 ## 📚 Documentation
@@ -218,50 +247,63 @@ Note: All values are properly type-checked and memory-managed. The library ensur
 - Type conversions are validated
 
 ## API Reference
+
+### Types
+
+- `TTOMLValue` - Base type for all TOML values
+- `TTOMLTable` - Represents a TOML table
+- `TTOMLArray` - Represents a TOML array
+- `TTOMLString` - Represents a TOML string value
+- `TTOMLInteger` - Represents a TOML integer value
+- `TTOMLFloat` - Represents a TOML float value
+- `TTOMLBoolean` - Represents a TOML boolean value
+- `TTOMLDateTime` - Represents a TOML datetime value
+
 ### Helper Functions for Creating TOML Values
-- TOMLString
+
+- `TOMLString`
 
 ```pascal
   function TOMLString(const AValue: string): TTOMLString;
 ```
 Creates a TOML string value.
 
-- TOMLInteger
+- `TOMLInteger`
 
 ```pascal
   function TOMLInteger(const AValue: Int64): TTOMLInteger;
 ```
 Creates a TOML integer value.
 
-- TOMLFloat
+- `TOMLFloat`
 
 ```pascal
   function TOMLFloat(const AValue: Double): TTOMLFloat;
 ```
 Creates a TOML float value.
 
-- TOMLBoolean 
+- `TOMLBoolean` 
 
 ```pascal
     function TOMLBoolean(const AValue: Boolean): TTOMLBoolean;
 ```
 Creates a TOML boolean value.
 
-- TOMLDateTime
+- `TOMLDateTime`
 
 ```pascal
     function TOMLDateTime(const AValue: TDateTime): TTOMLDateTime;
 ```
 Creates a TOML datetime value.
 
-- TOMLArray 
+- `TOMLArray` 
 
 ```pascal
   function TOMLArray: TTOMLArray;
 ```
 Creates a TOML array.
 
-- TOMLTable
+- `TOMLTable`
 
 ```pascal
   function TOMLTable: TTOMLTable;
@@ -269,7 +311,8 @@ Creates a TOML array.
 Creates a TOML table.
 
 ### Parsing Functions
-- ParseTOML
+
+- `ParseTOML`
 
 ```pascal
   function ParseTOML(const ATOML: string): TTOMLTable;
@@ -283,7 +326,7 @@ Parses a TOML-formatted string into a `TTOMLTable` object.
   end;
 ```
 
-- ParseTOMLFromFile
+- `ParseTOMLFromFile`
 
 ```pascal
   function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
@@ -312,7 +355,7 @@ Parses a TOML file into a `TTOMLTable` object.
 ```
 
 ### Serialization Functions
-- SerializeTOML
+- `SerializeTOML`
 
 ```pascal
   function SerializeTOML(const AValue: TTOMLValue): string;
@@ -326,7 +369,7 @@ Serializes a `TTOMLValue` into a TOML-formatted string.
   end;
 ```
 
-- SerializeTOMLToFile
+- `SerializeTOMLToFile`
 
 ```pascal
   function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
@@ -348,7 +391,6 @@ To run the tests:
 
 1. Open `tests/TestRunner.lpi` in Lazarus
 2. Build and run the project
-3. Or from command line: `fpc tests/TestRunner.lpr && ./TestRunner`
 
 ### Sample Test Output
 
@@ -373,7 +415,7 @@ True heap size : 294912 (256 used in System startup)
 True free heap : 294656
 ``` 
 
-## 🔍 Examples
+## Examples
 
 Check out the `examples` directory and the test cases, `tests/TestCaseTOML.pas`, for more detailed usage examples:
 
@@ -382,15 +424,7 @@ Check out the `examples` directory and the test cases, `tests/TestCaseTOML.pas`,
 - Error Handling Patterns
 - Integration Examples
 
-## 📫 Support
-
-- Create an issue for bug reports or feature requests
-- Star the repository if you find it useful
-- Follow the project for updates
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -398,11 +432,17 @@ Contributions are welcome! Here's how you can help:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+Please ensure:
+- Code follows the project's style guidelines
+- All tests pass
+- New features include appropriate tests
+- Documentation is updated
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-## 🏆 Acknowledgments
+## Acknowledgments
 
 - TOML specification creators and maintainers
 - Free Pascal and Lazarus communities

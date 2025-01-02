@@ -3,44 +3,23 @@ program BasicSerializeTOML;
 {$mode objfpc}{$H+}{$J-}
 
 uses
-  TOML, SysUtils;
+  TOML;
 
 var
-  Config, ServerConfig: TTOMLTable;
-  Ports: TTOMLArray;
-  SerializedTOML: string;
+  Config: TTOMLTable;
+  Database: TTOMLTable;
 begin
   Config := TOMLTable;
   try
-    // Create a nested table
-    ServerConfig := TOMLTable;
-    ServerConfig.Add('host', TOMLString('127.0.0.1'));
-    ServerConfig.Add('enabled', TOMLBoolean(True));
+    Database := TOMLTable;
+    Database.Add('host', TOMLString('localhost'));
+    Database.Add('port', TOMLInteger(5432));
+    Config.Add('database', Database);
 
-    // Create and populate an array
-    Ports := TOMLArray;
-    Ports.Add(TOMLInteger(80));
-    Ports.Add(TOMLInteger(443));
-    ServerConfig.Add('ports', Ports);
-
-    // Add the server config to main config
-    Config.Add('server', ServerConfig);
-
-    // Add some basic metadata
-    Config.Add('version', TOMLFloat(1.0));
-    Config.Add('last_updated', TOMLDateTime(Now));
-
-    // Serialize to TOML format
-    SerializedTOML := SerializeTOML(Config);
-    WriteLn('Generated TOML:');
-    WriteLn(SerializedTOML);
-
-    // Save to file
     if SerializeTOMLToFile(Config, 'config.toml') then
-      WriteLn('Successfully saved to file')
+      WriteLn('Configuration saved successfully')
     else
-      WriteLn('Error saving to file');
-
+      WriteLn('Error saving configuration');
   finally
     Config.Free;
   end;

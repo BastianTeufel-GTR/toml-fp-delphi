@@ -1,7 +1,4 @@
-last_updated = 2025-01-02T21:24:43.978Z
-version = 1
 
-[server]
-host = "127.0.0.1"
-enabled = true
-ports = [80, 443]
+[database]
+host = "localhost"
+port = 5432
