@@ -5,6 +5,14 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
 
+
+<div style="display: flex; align-items: center; gap: 16px;">
+    <img src="docs/assets/toml-logo.png" height="88">
+    <span style="font-size: 32px;font-style: italic;"> for </span>
+    <img src="docs/assets/objectpascal-fpc-logo.png" height="128">
+    <br>
+</div>
+
 A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, _almost_ fully compliant with the TOML v1.0.0 specification.
 
 > [!NOTE] 
