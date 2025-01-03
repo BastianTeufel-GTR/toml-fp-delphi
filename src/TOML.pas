@@ -1,7 +1,14 @@
-{ Main TOML unit that provides high-level functionality for parsing and serializing TOML data.
-  This unit re-exports the main types and provides helper functions for working with TOML data.
+{ TOML.pas
+  This is the main unit of the TOML library that provides high-level functionality for working with TOML data.
+  It re-exports the main types and provides helper functions for parsing and serializing TOML data.
   
-  Usage example:
+  The unit follows the TOML v1.0.0 specification and provides a clean, type-safe interface for:
+  - Parsing TOML from strings and files
+  - Serializing TOML data structures to strings and files
+  - Creating and manipulating TOML data structures
+  - Type-safe access to TOML values
+  
+  Example usage:
     var
       Table: TTOMLTable;
     begin
@@ -34,6 +41,7 @@ type
   TTOMLArray = TOML.Types.TTOMLArray;
   TTOMLTable = TOML.Types.TTOMLTable;
   
+  { Re-export exception types }
   ETOMLException = TOML.Types.ETOMLException;
   ETOMLParserException = TOML.Types.ETOMLParserException;
   ETOMLSerializerException = TOML.Types.ETOMLSerializerException;
@@ -41,51 +49,60 @@ type
 { Helper functions for creating TOML values }
 
 { Creates a new TOML string value
-  @param AValue The string value
-  @returns A new TTOMLString instance }
+  @param AValue The string value to store
+  @returns A new TTOMLString instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
 function TOMLString(const AValue: string): TTOMLString;
 
 { Creates a new TOML integer value
-  @param AValue The integer value
-  @returns A new TTOMLInteger instance }
+  @param AValue The 64-bit integer value to store
+  @returns A new TTOMLInteger instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
 function TOMLInteger(const AValue: Int64): TTOMLInteger;
 
 { Creates a new TOML float value
-  @param AValue The float value
-  @returns A new TTOMLFloat instance }
+  @param AValue The double-precision floating point value to store
+  @returns A new TTOMLFloat instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
 function TOMLFloat(const AValue: Double): TTOMLFloat;
 
 { Creates a new TOML boolean value
-  @param AValue The boolean value
-  @returns A new TTOMLBoolean instance }
+  @param AValue The boolean value to store
+  @returns A new TTOMLBoolean instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
 function TOMLBoolean(const AValue: Boolean): TTOMLBoolean;
 
 { Creates a new TOML datetime value
-  @param AValue The datetime value
-  @returns A new TTOMLDateTime instance }
+  @param AValue The TDateTime value to store
+  @returns A new TTOMLDateTime instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
 function TOMLDateTime(const AValue: TDateTime): TTOMLDateTime;
 
 { Creates a new empty TOML array
-  @returns A new TTOMLArray instance }
+  @returns A new empty TTOMLArray instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance and any values added to it }
 function TOMLArray: TTOMLArray;
 
 { Creates a new empty TOML table
-  @returns A new TTOMLTable instance }
+  @returns A new empty TTOMLTable instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance and any values added to it }
 function TOMLTable: TTOMLTable;
 
 { Parsing functions }
 
 { Parses a TOML string into a table
-  @param ATOML The TOML string to parse
+  @param ATOML The TOML-formatted string to parse
   @returns A new TTOMLTable containing the parsed data
-  @raises ETOMLParserException if the input is invalid }
+  @raises ETOMLParserException if the input is invalid TOML
+  @note The caller is responsible for freeing the returned table and all its contents }
 function ParseTOML(const ATOML: string): TTOMLTable;
 
 { Parses a TOML file into a table
-  @param AFileName The path to the TOML file
+  @param AFileName The path to the TOML file to parse
   @returns A new TTOMLTable containing the parsed data
-  @raises ETOMLParserException if the input is invalid
-  @raises EFileStreamError if the file cannot be opened }
+  @raises ETOMLParserException if the input is invalid TOML
+  @raises EFileStreamError if the file cannot be opened or read
+  @note The caller is responsible for freeing the returned table and all its contents }
 function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
 
 { Serialization functions }
@@ -106,7 +123,7 @@ function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string):
 
 implementation
 
-{ Helper functions }
+{ Helper functions implementation }
 
 function TOMLString(const AValue: string): TTOMLString;
 begin
@@ -143,7 +160,7 @@ begin
   Result := TTOMLTable.Create;
 end;
 
-{ Parsing functions }
+{ Parsing functions implementation }
 
 function ParseTOML(const ATOML: string): TTOMLTable;
 begin
@@ -155,7 +172,7 @@ begin
   Result := TOML.Parser.ParseTOMLFile(AFileName);
 end;
 
-{ Serialization functions }
+{ Serialization functions implementation }
 
 function SerializeTOML(const AValue: TTOMLValue): string;
 begin

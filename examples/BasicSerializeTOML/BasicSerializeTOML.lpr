@@ -8,6 +8,7 @@ uses
 var
   Config: TTOMLTable;
   Database: TTOMLTable;
+
 begin
   Config := TOMLTable;
   try

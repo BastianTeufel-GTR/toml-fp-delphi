@@ -1,3 +1,14 @@
+{ TOML.Types.pas
+  This unit defines the core data types and classes used to represent TOML data structures.
+  It provides a type-safe, object-oriented representation of TOML values including:
+  - Basic types (string, integer, float, boolean, datetime)
+  - Complex types (array, table)
+  - Type conversion and validation
+  - Memory management for TOML data structures
+  
+  The type system follows the TOML v1.0.0 specification and ensures type safety through
+  runtime checks and explicit type conversions.
+}
 unit TOML.Types;
 
 {$mode objfpc}{$H+}{$J-}
@@ -10,40 +21,51 @@ uses
   SysUtils, Generics.Collections;
 
 type
-  { TOML value types - represents all possible TOML data types }
+  { TOML value types - represents all possible TOML data types
+    These types correspond directly to the TOML specification types }
   TTOMLValueType = (
-    tvtString,      // String value type
-    tvtInteger,     // Integer value type
-    tvtFloat,       // Float/decimal value type
-    tvtBoolean,     // Boolean value type
-    tvtDateTime,    // Date/time value type
-    tvtArray,       // Array value type
-    tvtTable,       // Table value type
-    tvtInlineTable  // Inline table value type
+    tvtString,      // String value type (basic and literal strings)
+    tvtInteger,     // Integer value type (decimal, hex, octal, binary)
+    tvtFloat,       // Float/decimal value type (including exponential notation)
+    tvtBoolean,     // Boolean value type (true/false)
+    tvtDateTime,    // Date/time value type (RFC 3339)
+    tvtArray,       // Array value type (ordered list of values)
+    tvtTable,       // Table value type (collection of key/value pairs)
+    tvtInlineTable  // Inline table value type (compact table representation)
   );
 
-  { Forward declarations }
+  { Forward declarations for interdependent types }
   TTOMLValue = class;
   TTOMLArray = class;
   TTOMLTable = class;
 
   { Exception types for TOML parsing and handling }
+  
+  { Base exception type for all TOML-related errors }
   ETOMLException = class(Exception);
+  
+  { Exception type for TOML parsing errors }
   ETOMLParserException = class(ETOMLException);
+  
+  { Exception type for TOML serialization errors }
   ETOMLSerializerException = class(ETOMLException);
 
-  { Generic dictionary for tables - maps string keys to TOML values }
+  { Generic dictionary type for TOML tables
+    Maps string keys to TOML values with case-sensitive comparison }
   TTOMLTableDict = specialize TDictionary<string, TTOMLValue>;
   
-  { Generic list for arrays - stores TOML values }
+  { Generic list type for TOML arrays
+    Stores ordered list of TOML values }
   TTOMLValueList = specialize TList<TTOMLValue>;
 
-  { Base TOML value class - abstract base class for all TOML value types }
+  { Base TOML value class - abstract base class for all TOML value types
+    Provides common functionality and type conversion methods }
   TTOMLValue = class
   private
-    FValueType: TTOMLValueType;
+    FValueType: TTOMLValueType;  // Type of the TOML value
   protected
-    { Protected type conversion methods - override in derived classes }
+    { Protected type conversion methods - override in derived classes
+      Each method raises ETOMLException if conversion is not supported }
     function GetAsString: string; virtual;
     function GetAsInteger: Int64; virtual;
     function GetAsFloat: Double; virtual;
@@ -57,7 +79,8 @@ type
     constructor Create(AType: TTOMLValueType);
     destructor Destroy; override;
     
-    { Properties for accessing the value in different formats }
+    { Properties for accessing the value in different formats
+      Each property will raise ETOMLException if conversion is not supported }
     property ValueType: TTOMLValueType read FValueType;
     property AsString: string read GetAsString;
     property AsInteger: Int64 read GetAsInteger;
@@ -68,10 +91,10 @@ type
     property AsTable: TTOMLTable read GetAsTable;
   end;
 
-  { String value - represents a TOML string }
+  { String value - represents a TOML string (basic or literal) }
   TTOMLString = class(TTOMLValue)
   private
-    FValue: string;
+    FValue: string;  // The string value
   protected
     function GetAsString: string; override;
   public
@@ -81,37 +104,37 @@ type
     property Value: string read FValue write FValue;
   end;
 
-  { Integer value - represents a TOML integer }
+  { Integer value - represents a TOML integer (decimal, hex, octal, binary) }
   TTOMLInteger = class(TTOMLValue)
   private
-    FValue: Int64;
+    FValue: Int64;  // The 64-bit integer value
   protected
     function GetAsInteger: Int64; override;
-    function GetAsFloat: Double; override;
+    function GetAsFloat: Double; override;  // Allows conversion to float
   public
     { Creates a new TOML integer value
-      @param AValue The integer value to store }
+      @param AValue The 64-bit integer value to store }
     constructor Create(const AValue: Int64);
     property Value: Int64 read FValue write FValue;
   end;
 
-  { Float value - represents a TOML float }
+  { Float value - represents a TOML float (including exponential notation) }
   TTOMLFloat = class(TTOMLValue)
   private
-    FValue: Double;
+    FValue: Double;  // The double-precision floating point value
   protected
     function GetAsFloat: Double; override;
   public
     { Creates a new TOML float value
-      @param AValue The float value to store }
+      @param AValue The double-precision float value to store }
     constructor Create(const AValue: Double);
     property Value: Double read FValue write FValue;
   end;
 
-  { Boolean value - represents a TOML boolean }
+  { Boolean value - represents a TOML boolean (true/false) }
   TTOMLBoolean = class(TTOMLValue)
   private
-    FValue: Boolean;
+    FValue: Boolean;  // The boolean value
   protected
     function GetAsBoolean: Boolean; override;
   public
@@ -121,23 +144,23 @@ type
     property Value: Boolean read FValue write FValue;
   end;
 
-  { DateTime value - represents a TOML datetime }
+  { DateTime value - represents a TOML datetime (RFC 3339 format) }
   TTOMLDateTime = class(TTOMLValue)
   private
-    FValue: TDateTime;
+    FValue: TDateTime;  // The datetime value
   protected
     function GetAsDateTime: TDateTime; override;
   public
     { Creates a new TOML datetime value
-      @param AValue The datetime value to store }
+      @param AValue The TDateTime value to store }
     constructor Create(const AValue: TDateTime);
     property Value: TDateTime read FValue write FValue;
   end;
 
-  { Array value - represents a TOML array }
+  { Array value - represents a TOML array (ordered list of values) }
   TTOMLArray = class(TTOMLValue)
   private
-    FItems: TTOMLValueList;
+    FItems: TTOMLValueList;  // List of TOML values
   protected
     function GetAsArray: TTOMLArray; override;
   public
@@ -152,21 +175,23 @@ type
     
     { Gets an item at the specified index
       @param Index The zero-based index
-      @returns The TOML value at the index }
+      @returns The TOML value at the index
+      @raises EListError if index is out of bounds }
     function GetItem(Index: Integer): TTOMLValue;
     
     { Gets the number of items in the array
       @returns The count of items }
     function GetCount: Integer;
     
+    { Properties for accessing array data }
     property Items: TTOMLValueList read FItems;
     property Count: Integer read GetCount;
   end;
 
-  { Table value - represents a TOML table }
+  { Table value - represents a TOML table (collection of key/value pairs) }
   TTOMLTable = class(TTOMLValue)
   private
-    FItems: TTOMLTableDict;
+    FItems: TTOMLTableDict;  // Dictionary of key/value pairs
   protected
     function GetAsTable: TTOMLTable; override;
   public
@@ -187,6 +212,7 @@ type
       @returns True if the key exists, False otherwise }
     function TryGetValue(const AKey: string; out AValue: TTOMLValue): Boolean;
     
+    { Property for accessing the underlying dictionary }
     property Items: TTOMLTableDict read FItems;
   end;
 
@@ -329,6 +355,7 @@ destructor TTOMLArray.Destroy;
 var
   Item: TTOMLValue;
 begin
+  // Free all items in the array
   for Item in FItems do
     Item.Free;
   FItems.Free;
@@ -367,6 +394,7 @@ destructor TTOMLTable.Destroy;
 var
   Item: TTOMLValue;
 begin
+  // Free all values in the table
   for Item in FItems.Values do
     Item.Free;
   FItems.Free;
@@ -380,6 +408,7 @@ begin
   if FItems = nil then
     FItems := TTOMLTableDict.Create;
     
+  // Check for duplicate keys
   if FItems.TryGetValue(AKey, ExistingValue) then
     raise ETOMLParserException.CreateFmt('Duplicate key "%s" found', [AKey]);
     
