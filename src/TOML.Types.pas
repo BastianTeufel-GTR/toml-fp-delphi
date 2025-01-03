@@ -395,10 +395,10 @@ var
   Item: TTOMLValue;
 begin
   // Free all values in the table
-  for Item in FItems.Values do
-    Item.Free;
-  FItems.Free;
-  inherited Destroy;
+  for Item in FItems.Values do  // Iterates through all values in the dictionary
+    Item.Free;                  // Frees each value (including nested tables)
+  FItems.Free;                  // Frees the dictionary itself
+  inherited Destroy;            // Calls parent destructor
 end;
 
 procedure TTOMLTable.Add(const AKey: string; AValue: TTOMLValue);
