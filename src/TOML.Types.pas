@@ -10,16 +10,16 @@ uses
   SysUtils, Generics.Collections;
 
 type
-  { TOML value types }
+  { TOML value types - represents all possible TOML data types }
   TTOMLValueType = (
-    tvtString,
-    tvtInteger,
-    tvtFloat,
-    tvtBoolean,
-    tvtDateTime,
-    tvtArray,
-    tvtTable,
-    tvtInlineTable
+    tvtString,      // String value type
+    tvtInteger,     // Integer value type
+    tvtFloat,       // Float/decimal value type
+    tvtBoolean,     // Boolean value type
+    tvtDateTime,    // Date/time value type
+    tvtArray,       // Array value type
+    tvtTable,       // Table value type
+    tvtInlineTable  // Inline table value type
   );
 
   { Forward declarations }
@@ -27,22 +27,23 @@ type
   TTOMLArray = class;
   TTOMLTable = class;
 
-  { Exception types }
+  { Exception types for TOML parsing and handling }
   ETOMLException = class(Exception);
   ETOMLParserException = class(ETOMLException);
   ETOMLSerializerException = class(ETOMLException);
 
-  { Generic dictionary for tables }
+  { Generic dictionary for tables - maps string keys to TOML values }
   TTOMLTableDict = specialize TDictionary<string, TTOMLValue>;
   
-  { Generic list for arrays }
+  { Generic list for arrays - stores TOML values }
   TTOMLValueList = specialize TList<TTOMLValue>;
 
-  { Base TOML value class }
+  { Base TOML value class - abstract base class for all TOML value types }
   TTOMLValue = class
   private
     FValueType: TTOMLValueType;
   protected
+    { Protected type conversion methods - override in derived classes }
     function GetAsString: string; virtual;
     function GetAsInteger: Int64; virtual;
     function GetAsFloat: Double; virtual;
@@ -51,9 +52,12 @@ type
     function GetAsArray: TTOMLArray; virtual;
     function GetAsTable: TTOMLTable; virtual;
   public
+    { Creates a new TOML value with the specified type
+      @param AType The type of TOML value to create }
     constructor Create(AType: TTOMLValueType);
     destructor Destroy; override;
     
+    { Properties for accessing the value in different formats }
     property ValueType: TTOMLValueType read FValueType;
     property AsString: string read GetAsString;
     property AsInteger: Int64 read GetAsInteger;
@@ -64,18 +68,20 @@ type
     property AsTable: TTOMLTable read GetAsTable;
   end;
 
-  { String value }
+  { String value - represents a TOML string }
   TTOMLString = class(TTOMLValue)
   private
     FValue: string;
   protected
     function GetAsString: string; override;
   public
+    { Creates a new TOML string value
+      @param AValue The string value to store }
     constructor Create(const AValue: string);
     property Value: string read FValue write FValue;
   end;
 
-  { Integer value }
+  { Integer value - represents a TOML integer }
   TTOMLInteger = class(TTOMLValue)
   private
     FValue: Int64;
@@ -83,70 +89,104 @@ type
     function GetAsInteger: Int64; override;
     function GetAsFloat: Double; override;
   public
+    { Creates a new TOML integer value
+      @param AValue The integer value to store }
     constructor Create(const AValue: Int64);
     property Value: Int64 read FValue write FValue;
   end;
 
-  { Float value }
+  { Float value - represents a TOML float }
   TTOMLFloat = class(TTOMLValue)
   private
     FValue: Double;
   protected
     function GetAsFloat: Double; override;
   public
+    { Creates a new TOML float value
+      @param AValue The float value to store }
     constructor Create(const AValue: Double);
     property Value: Double read FValue write FValue;
   end;
 
-  { Boolean value }
+  { Boolean value - represents a TOML boolean }
   TTOMLBoolean = class(TTOMLValue)
   private
     FValue: Boolean;
   protected
     function GetAsBoolean: Boolean; override;
   public
+    { Creates a new TOML boolean value
+      @param AValue The boolean value to store }
     constructor Create(const AValue: Boolean);
     property Value: Boolean read FValue write FValue;
   end;
 
-  { DateTime value }
+  { DateTime value - represents a TOML datetime }
   TTOMLDateTime = class(TTOMLValue)
   private
     FValue: TDateTime;
   protected
     function GetAsDateTime: TDateTime; override;
   public
+    { Creates a new TOML datetime value
+      @param AValue The datetime value to store }
     constructor Create(const AValue: TDateTime);
     property Value: TDateTime read FValue write FValue;
   end;
 
-  { Array value }
+  { Array value - represents a TOML array }
   TTOMLArray = class(TTOMLValue)
   private
     FItems: TTOMLValueList;
   protected
     function GetAsArray: TTOMLArray; override;
   public
+    { Creates a new empty TOML array }
     constructor Create;
     destructor Destroy; override;
+    
+    { Adds a value to the array
+      @param AValue The value to add
+      @note Takes ownership of the value }
     procedure Add(AValue: TTOMLValue);
+    
+    { Gets an item at the specified index
+      @param Index The zero-based index
+      @returns The TOML value at the index }
     function GetItem(Index: Integer): TTOMLValue;
+    
+    { Gets the number of items in the array
+      @returns The count of items }
     function GetCount: Integer;
+    
     property Items: TTOMLValueList read FItems;
     property Count: Integer read GetCount;
   end;
 
-  { Table value }
+  { Table value - represents a TOML table }
   TTOMLTable = class(TTOMLValue)
   private
     FItems: TTOMLTableDict;
   protected
     function GetAsTable: TTOMLTable; override;
   public
+    { Creates a new empty TOML table }
     constructor Create;
     destructor Destroy; override;
+    
+    { Adds a key-value pair to the table
+      @param AKey The key for the value
+      @param AValue The value to add
+      @raises ETOMLParserException if the key already exists
+      @note Takes ownership of the value }
     procedure Add(const AKey: string; AValue: TTOMLValue);
+    
+    { Tries to get a value by key
+      @param AKey The key to look up
+      @param AValue The found value (if successful)
+      @returns True if the key exists, False otherwise }
     function TryGetValue(const AKey: string; out AValue: TTOMLValue): Boolean;
+    
     property Items: TTOMLTableDict read FItems;
   end;
 
