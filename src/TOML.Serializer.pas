@@ -1,3 +1,12 @@
+{ TOML Serializer unit that handles converting TOML data structures to text format.
+  This unit implements serialization of all TOML data types including:
+  - Basic key/value pairs
+  - Tables and inline tables 
+  - Arrays
+  - Basic strings and literal strings
+  - Integers, floats, booleans
+  - Dates and times
+}
 unit TOML.Serializer;
 
 {$mode objfpc}{$H+}{$J-}
@@ -8,32 +17,78 @@ uses
   SysUtils, Classes, TOML.Types, Generics.Collections;
 
 type
-  { Key-Value pair type }
+  { Key-Value pair type for TOML tables }
   TTOMLKeyValuePair = specialize TPair<string, TTOMLValue>;
 
+  { TOML serializer class that converts TOML data to text format }
   TTOMLSerializer = class
   private
-    FStringBuilder: TStringBuilder;
-    FIndentLevel: Integer;
-    FCurrentPath: TStringList;
+    FStringBuilder: TStringBuilder;  // StringBuilder for efficient string building
+    FIndentLevel: Integer;           // Current indentation level
+    FCurrentPath: TStringList;       // Tracks current table path
     
+    { Writes indentation at current level }
     procedure WriteIndent;
+    
+    { Writes a line with optional content and newline
+      @param ALine Optional string content to write }
     procedure WriteLine(const ALine: string = '');
+    
+    { Writes a TOML key with proper quoting
+      @param AKey The key to write }
     procedure WriteKey(const AKey: string);
+    
+    { Writes a TOML string value with proper escaping
+      @param AValue The string to write }
     procedure WriteString(const AValue: string);
+    
+    { Writes any TOML value based on its type
+      @param AValue The value to write }
     procedure WriteValue(const AValue: TTOMLValue);
+    
+    { Writes a TOML table
+      @param ATable The table to write
+      @param AInline Whether to write as inline table }
     procedure WriteTable(const ATable: TTOMLTable; const AInline: Boolean = False);
+    
+    { Writes a TOML array
+      @param AArray The array to write }
     procedure WriteArray(const AArray: TTOMLArray);
+    
+    { Writes a TOML datetime value
+      @param ADateTime The datetime to write }
     procedure WriteDateTime(const ADateTime: TDateTime);
+    
+    { Checks if a key needs to be quoted
+      @param AKey The key to check
+      @returns True if key needs quoting, False otherwise }
     function NeedsQuoting(const AKey: string): Boolean;
   public
+    { Creates a new TOML serializer instance }
     constructor Create;
+    
+    { Cleans up the serializer instance }
     destructor Destroy; override;
     
+    { Serializes a TOML value to string format
+      @param AValue The value to serialize
+      @returns The serialized TOML string
+      @raises ETOMLSerializerException if value cannot be serialized }
     function Serialize(const AValue: TTOMLValue): string;
   end;
 
+{ Serializes a TOML value to string format
+  @param AValue The value to serialize
+  @returns The serialized TOML string
+  @raises ETOMLSerializerException if value cannot be serialized }
 function SerializeTOML(const AValue: TTOMLValue): string;
+
+{ Serializes a TOML value to a file
+  @param AValue The value to serialize
+  @param AFileName The output file path
+  @returns True if successful, False otherwise
+  @raises ETOMLSerializerException if value cannot be serialized
+  @raises EFileStreamError if file cannot be written }
 function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
 
 implementation
