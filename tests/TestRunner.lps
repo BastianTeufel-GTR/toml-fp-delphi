@@ -31,7 +31,7 @@
         <Filename Value="..\src\TOML.Parser.pas"/>
         <EditorIndex Value="1"/>
         <TopLine Value="1211"/>
-        <CursorPos X="36" Y="1217"/>
+        <CursorPos X="5" Y="1217"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit>
@@ -48,7 +48,7 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <TopLine Value="280"/>
-        <CursorPos X="4" Y="289"/>
+        <CursorPos X="39" Y="284"/>
         <UsageCount Value="14"/>
         <Loaded Value="True"/>
       </Unit>
