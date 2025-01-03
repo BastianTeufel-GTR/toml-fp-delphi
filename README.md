@@ -30,6 +30,11 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
       - [Working with Arrays](#working-with-arrays)
       - [Nested Tables](#nested-tables)
       - [Serializing Complex Structures](#serializing-complex-structures)
+    - [Memory Management](#memory-management)
+      - [Creating Tables](#creating-tables)
+      - [Adding Nested Tables or Values](#adding-nested-tables-or-values)
+      - [Freeing Tables:](#freeing-tables)
+      - [Avoid Explicitly Freeing Nested Objects:](#avoid-explicitly-freeing-nested-objects)
   - [API Reference](#api-reference)
     - [Types](#types)
     - [Helper Functions for Creating TOML Values](#helper-functions-for-creating-toml-values)
@@ -68,7 +73,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 ## Requirements
 
 - Free Pascal Compiler 3.2.2 or later
-- Lazarus IDE 3.6 (needed for running the test runner; optional, for development)
+- Lazarus IDE 3.6 (for running tests)
 
 ## Installation
 
@@ -290,6 +295,53 @@ Note: All values are properly type-checked and memory-managed. The library ensur
 - Arrays maintain type consistency
 - All objects are properly freed
 - Type conversions are validated
+
+
+### Memory Management
+
+> [!NOTE]
+>
+> **Only free the top-level owner table** to avoid memory management issues.
+
+- Proper memory management is essential to prevent memory leaks in your applications. TOML-FP follows a clear ownership hierarchy where parent tables own their nested tables and values. Here's how it works:
+
+#### Creating Tables
+- When you create a `TTOMLTable`, it acts as an owner for any nested tables or values you add to it.
+
+#### Adding Nested Tables or Values
+- Use the `Add` method to insert nested tables or values into a parent table.
+- Example:
+
+```pascal
+var
+  Config: TTOMLTable;
+  Database: TTOMLTable;
+begin
+  Config := TOMLTable;
+  Database := TOMLTable;
+  Config.Add('database', Database);
+  // ...
+  Config.Free; // This frees all nested tables and values
+end.
+``` 
+
+#### Freeing Tables:
+- **Only free the top-level owner table**.
+- Frees all nested tables and values automatically.
+- Example:
+
+```pascal
+var
+  Config: TTOMLTable;
+begin
+  Config := TOMLTable;
+  // ... add nested tables and values ...
+  Config.Free; // This frees all nested tables and values
+end.
+```
+
+#### Avoid Explicitly Freeing Nested Objects:
+- Do not manually free nested tables or values to prevent memory management issues.
 
 ## API Reference
 

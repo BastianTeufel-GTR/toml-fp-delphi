@@ -1,3 +1,18 @@
+{ TOML Parser unit that handles parsing of TOML format data.
+  This unit implements a lexer and parser for the TOML format specification.
+  
+  The parser follows the TOML v1.0.0 specification and supports all TOML data types:
+  - Basic key/value pairs with string, integer, float, boolean, and datetime values
+  - Tables and inline tables for structured data
+  - Arrays of any valid TOML type
+  - Basic strings and literal strings with proper escaping
+  - Numbers in decimal, hexadecimal, octal, and binary formats
+  - Dates and times in RFC 3339 format
+  
+  The parsing process is done in two stages:
+  1. Lexical analysis (TTOMLLexer) - converts input text into tokens
+  2. Syntactic analysis (TTOMLParser) - converts tokens into TOML data structures
+}
 unit TOML.Parser;
 
 {$mode objfpc}{$H+}{$J-}
@@ -8,93 +23,211 @@ uses
   SysUtils, Classes, TOML.Types, Generics.Collections, TypInfo, DateUtils, Math;
 
 type
-  { Token types for lexical analysis }
+  { Token types used during lexical analysis
+    Each token represents a meaningful unit in the TOML syntax }
   TTokenType = (
-    ttEOF,
-    ttString,
-    ttInteger,
-    ttFloat,
-    ttBoolean,
-    ttDateTime,
-    ttEqual,
-    ttDot,
-    ttComma,
-    ttLBracket,
-    ttRBracket,
-    ttLBrace,
-    ttRBrace,
-    ttNewLine,
-    ttWhitespace,
-    ttComment,
-    ttIdentifier
+    ttEOF,        // End of file marker
+    ttString,     // String literal (basic or literal)
+    ttInteger,    // Integer number (decimal, hex, octal, binary)
+    ttFloat,      // Floating point number (with optional exponent)
+    ttBoolean,    // Boolean value (true/false)
+    ttDateTime,   // Date/time value (RFC 3339)
+    ttEqual,      // Equal sign (=)
+    ttDot,        // Dot for nested keys (.)
+    ttComma,      // Comma separator (,)
+    ttLBracket,   // Left bracket ([)
+    ttRBracket,   // Right bracket (])
+    ttLBrace,     // Left brace ({)
+    ttRBrace,     // Right brace (})
+    ttNewLine,    // Line break
+    ttWhitespace, // Whitespace characters
+    ttComment,    // Comment (# or ##)
+    ttIdentifier  // Key identifier
   );
 
-  { Token record }
+  { Token record that stores lexical token information }
   TToken = record
-    TokenType: TTokenType;
-    Value: string;
-    Line: Integer;
-    Column: Integer;
+    TokenType: TTokenType;  // Type of the token
+    Value: string;          // String value of the token
+    Line: Integer;          // Line number (1-based)
+    Column: Integer;        // Column number (1-based)
   end;
 
-  { Key-Value pair type }
+  { Key-Value pair type for TOML tables }
   TTOMLKeyValuePair = specialize TPair<string, TTOMLValue>;
 
-  { Lexer class }
+  { Lexer class that performs lexical analysis of TOML input
+    Converts raw TOML text into a sequence of tokens }
   TTOMLLexer = class
   private
-    FInput: string;
-    FPosition: Integer;
-    FLine: Integer;
-    FColumn: Integer;
+    FInput: string;      // Input string to tokenize
+    FPosition: Integer;  // Current position in input
+    FLine: Integer;      // Current line number (1-based)
+    FColumn: Integer;    // Current column number (1-based)
+    
+    { Checks if we've reached the end of input
+      @returns True if at end, False otherwise }
     function IsAtEnd: Boolean;
+    
+    { Peeks at current character without advancing position
+      @returns Current character or #0 if at end }
     function Peek: Char;
+    
+    { Peeks at next character without advancing position
+      @returns Next character or #0 if at end }
     function PeekNext: Char;
+    
+    { Advances position and returns current character
+      @returns Current character or #0 if at end }
     function Advance: Char;
+    
+    { Skips whitespace and comments in the input }
     procedure SkipWhitespace;
+    
+    { Scans a string token (basic or literal)
+      @returns The scanned string token
+      @raises ETOMLParserException if string is malformed }
     function ScanString: TToken;
+    
+    { Scans a number token (integer or float)
+      @returns The scanned number token
+      @raises ETOMLParserException if number is malformed }
     function ScanNumber: TToken;
+    
+    { Scans an identifier token
+      @returns The scanned identifier token }
     function ScanIdentifier: TToken;
+    
+    { Scans a datetime token
+      @returns The scanned datetime token
+      @raises ETOMLParserException if datetime is malformed }
     function ScanDateTime: TToken;
+    
+    { Character classification helper functions }
+    
+    { Checks if character is a digit (0-9)
+      @param C Character to check
+      @returns True if digit, False otherwise }
     function IsDigit(C: Char): Boolean;
+    
+    { Checks if character is alphabetic (a-z, A-Z)
+      @param C Character to check
+      @returns True if alphabetic, False otherwise }
     function IsAlpha(C: Char): Boolean;
+    
+    { Checks if character is alphanumeric (a-z, A-Z, 0-9)
+      @param C Character to check
+      @returns True if alphanumeric, False otherwise }
     function IsAlphaNumeric(C: Char): Boolean;
   public
+    { Creates a new lexer instance
+      @param AInput The TOML input string to tokenize }
     constructor Create(const AInput: string);
+    
+    { Gets the next token from input
+      @returns The next token
+      @raises ETOMLParserException if invalid input encountered }
     function NextToken: TToken;
   end;
 
-  { Parser class }
+  { Parser class that performs syntactic analysis of TOML input
+    Converts tokens into TOML data structures }
   TTOMLParser = class
   private
-    FLexer: TTOMLLexer;
-    FCurrentToken: TToken;
-    FPeekedToken: TToken;
-    FHasPeeked: Boolean;
+    FLexer: TTOMLLexer;           // Lexer instance
+    FCurrentToken: TToken;         // Current token being processed
+    FPeekedToken: TToken;         // Next token (if peeked)
+    FHasPeeked: Boolean;          // Whether we have a peeked token
     
+    { Advances to next token }
     procedure Advance;
+    
+    { Peeks at next token without advancing
+      @returns The next token }
     function Peek: TToken;
+    
+    { Checks if current token matches expected type
+      @param TokenType Expected token type
+      @returns True and advances if matches, False otherwise }
     function Match(TokenType: TTokenType): Boolean;
+    
+    { Expects current token to be of specific type
+      @param TokenType Expected token type
+      @raises ETOMLParserException if token doesn't match }
     procedure Expect(TokenType: TTokenType);
     
+    { Parsing methods for different TOML constructs }
+    
+    { Parses a TOML value
+      @returns The parsed value
+      @raises ETOMLParserException on parse error }
     function ParseValue: TTOMLValue;
+    
+    { Parses a string value
+      @returns The parsed string value
+      @raises ETOMLParserException on parse error }
     function ParseString: TTOMLString;
+    
+    { Parses a number value (integer or float)
+      @returns The parsed number value
+      @raises ETOMLParserException on parse error }
     function ParseNumber: TTOMLValue;
+    
+    { Parses a boolean value
+      @returns The parsed boolean value
+      @raises ETOMLParserException on parse error }
     function ParseBoolean: TTOMLBoolean;
+    
+    { Parses a datetime value
+      @returns The parsed datetime value
+      @raises ETOMLParserException on parse error }
     function ParseDateTime: TTOMLDateTime;
+    
+    { Parses an array value
+      @returns The parsed array value
+      @raises ETOMLParserException on parse error }
     function ParseArray: TTOMLArray;
+    
+    { Parses an inline table value
+      @returns The parsed table value
+      @raises ETOMLParserException on parse error }
     function ParseInlineTable: TTOMLTable;
-    function ParseKeyValue: TTOMLKeyValuePair;
+    
+    { Parses a key (bare or quoted)
+      @returns The parsed key string
+      @raises ETOMLParserException on parse error }
     function ParseKey: string;
+    
+    { Parses a key-value pair
+      @returns The parsed key-value pair
+      @raises ETOMLParserException on parse error }
+    function ParseKeyValue: TTOMLKeyValuePair;
   public
+    { Creates a new parser instance
+      @param AInput The TOML input string to parse }
     constructor Create(const AInput: string);
     destructor Destroy; override;
+    
+    { Parses the input and returns a TOML table
+      @returns The parsed TOML table
+      @raises ETOMLParserException on parse error }
     function Parse: TTOMLTable;
   end;
 
-  { Helper functions }
-  function ParseTOMLString(const ATOML: string): TTOMLTable;
-  function ParseTOMLFile(const AFileName: string): TTOMLTable;
+{ Helper functions }
+
+{ Parses a TOML string into a table
+  @param ATOML The TOML string to parse
+  @returns The parsed TOML table
+  @raises ETOMLParserException on parse error }
+function ParseTOMLString(const ATOML: string): TTOMLTable;
+
+{ Parses a TOML file into a table
+  @param AFileName The file to parse
+  @returns The parsed TOML table
+  @raises ETOMLParserException on parse error
+  @raises EFileStreamError if file cannot be opened }
+function ParseTOMLFile(const AFileName: string): TTOMLTable;
 
 implementation
 

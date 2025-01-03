@@ -1,3 +1,23 @@
+{ TOML.Serializer.pas
+  This unit implements serialization of TOML data structures to text format.
+  It handles converting TOML objects into properly formatted TOML text that follows
+  the TOML v1.0.0 specification.
+
+  The serializer supports all TOML data types and features:
+  - Basic key/value pairs with proper quoting and escaping
+  - Tables and inline tables with proper nesting
+  - Arrays with proper formatting and type consistency
+  - Basic strings and literal strings with proper escaping
+  - Numbers in decimal format (integers and floats)
+  - Booleans and dates/times in standard format
+  
+  Key features:
+  - Efficient string building using TStringBuilder
+  - Proper indentation and formatting for readability
+  - Handles nested tables and arrays correctly
+  - Preserves table ordering as per TOML spec
+  - Proper escaping of special characters in strings
+}
 unit TOML.Serializer;
 
 {$mode objfpc}{$H+}{$J-}
@@ -8,35 +28,94 @@ uses
   SysUtils, Classes, TOML.Types, Generics.Collections;
 
 type
-  { Key-Value pair type }
+  { Key-Value pair type for TOML tables }
   TTOMLKeyValuePair = specialize TPair<string, TTOMLValue>;
 
+  { TOML serializer class that converts TOML data to text format
+    This class handles the conversion of TOML data structures into properly
+    formatted TOML text, following the TOML v1.0.0 specification }
   TTOMLSerializer = class
   private
-    FStringBuilder: TStringBuilder;
-    FIndentLevel: Integer;
-    FCurrentPath: TStringList;
+    FStringBuilder: TStringBuilder;  // StringBuilder for efficient string building
+    FIndentLevel: Integer;           // Current indentation level
+    FCurrentPath: TStringList;       // Tracks current table path for proper nesting
     
+    { Writes indentation at current level
+      Used to maintain consistent formatting }
     procedure WriteIndent;
+    
+    { Writes a line with optional content and newline
+      @param ALine Optional string content to write }
     procedure WriteLine(const ALine: string = '');
+    
+    { Writes a TOML key with proper quoting
+      @param AKey The key to write
+      Handles escaping and quoting of keys as needed }
     procedure WriteKey(const AKey: string);
+    
+    { Writes a TOML string value with proper escaping
+      @param AValue The string to write
+      Handles all required string escaping per TOML spec }
     procedure WriteString(const AValue: string);
+    
+    { Writes any TOML value based on its type
+      @param AValue The value to write
+      Dispatches to appropriate write method based on value type }
     procedure WriteValue(const AValue: TTOMLValue);
+    
+    { Writes a TOML table
+      @param ATable The table to write
+      @param AInline Whether to write as inline table
+      Handles both standard and inline table formats }
     procedure WriteTable(const ATable: TTOMLTable; const AInline: Boolean = False);
+    
+    { Writes a TOML array
+      @param AArray The array to write
+      Handles arrays of any valid TOML type }
     procedure WriteArray(const AArray: TTOMLArray);
+    
+    { Writes a TOML datetime value
+      @param ADateTime The datetime to write
+      Formats datetime according to RFC 3339 }
     procedure WriteDateTime(const ADateTime: TDateTime);
+    
+    { Checks if a key needs to be quoted
+      @param AKey The key to check
+      @returns True if key needs quoting, False otherwise }
     function NeedsQuoting(const AKey: string): Boolean;
   public
+    { Creates a new TOML serializer instance }
     constructor Create;
+    
+    { Cleans up the serializer instance }
     destructor Destroy; override;
     
+    { Serializes a TOML value to string format
+      @param AValue The value to serialize
+      @returns The serialized TOML string
+      @raises ETOMLSerializerException if value cannot be serialized }
     function Serialize(const AValue: TTOMLValue): string;
   end;
 
+{ High-level serialization functions }
+
+{ Serializes a TOML value to string format
+  @param AValue The value to serialize
+  @returns The serialized TOML string
+  @raises ETOMLSerializerException if value cannot be serialized }
 function SerializeTOML(const AValue: TTOMLValue): string;
+
+{ Serializes a TOML value to a file
+  @param AValue The value to serialize
+  @param AFileName The output file path
+  @returns True if successful, False otherwise
+  @raises ETOMLSerializerException if value cannot be serialized
+  @raises EFileStreamError if file cannot be written }
 function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
 
 implementation
+
+{ High-level function implementations }
 
 function SerializeTOML(const AValue: TTOMLValue): string;
 var
@@ -70,7 +149,7 @@ begin
   end;
 end;
 
-{ TTOMLSerializer }
+{ TTOMLSerializer implementation }
 
 constructor TTOMLSerializer.Create;
 begin
@@ -113,12 +192,12 @@ begin
   if AKey = '' then
     Exit(True);
     
-  // Check first character
+  // Check first character - must be letter or underscore
   C := AKey[1];
   if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or (C = '_')) then
     Exit(True);
     
-  // Check rest of the characters
+  // Check rest of characters - must be letter, number, underscore or dash
   for i := 2 to Length(AKey) do
   begin
     C := AKey[i];
@@ -147,14 +226,15 @@ begin
   begin
     C := AValue[i];
     case C of
-      #8:  FStringBuilder.Append('\b');
-      #9:  FStringBuilder.Append('\t');
-      #10: FStringBuilder.Append('\n');
-      #13: FStringBuilder.Append('\r');
-      '"': FStringBuilder.Append('\"');
-      '\': FStringBuilder.Append('\\');
+      #8:  FStringBuilder.Append('\b');   // Backspace
+      #9:  FStringBuilder.Append('\t');   // Tab
+      #10: FStringBuilder.Append('\n');   // Line feed
+      #13: FStringBuilder.Append('\r');   // Carriage return
+      '"': FStringBuilder.Append('\"');   // Quote
+      '\': FStringBuilder.Append('\\');   // Backslash
       else
         if C < #32 then
+          // Control characters as unicode escapes
           FStringBuilder.AppendFormat('\u%.4x', [Ord(C)])
         else
           FStringBuilder.Append(C);
@@ -165,6 +245,7 @@ end;
 
 procedure TTOMLSerializer.WriteDateTime(const ADateTime: TDateTime);
 begin
+  // Format as RFC 3339 UTC datetime
   FStringBuilder.Append(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz"Z"', ADateTime));
 end;
 
@@ -227,6 +308,7 @@ var
 begin
   if AInline then
   begin
+    // Write inline table format: { key1 = value1, key2 = value2 }
     FStringBuilder.Append('{');
     First := True;
     
@@ -258,7 +340,7 @@ begin
       end;
     end;
     
-    // Then write all table values
+    // Then write all table values with proper headers
     for Pair in ATable.Items do
     begin
       if Pair.Value is TTOMLTable then
