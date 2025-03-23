@@ -1158,6 +1158,9 @@ begin
 end;
 
 function TTOMLParser.ParseArray: TTOMLArray;
+var
+  ItemValue: TTOMLValue;
+  HasNewline: Boolean;
 begin
   Result := TTOMLArray.Create;
   try
@@ -1166,8 +1169,28 @@ begin
     if FCurrentToken.TokenType <> ttRBracket then
     begin
       repeat
-        Result.Add(ParseValue);
+        // Skip any newlines between array elements
+        HasNewline := False;
+        while FCurrentToken.TokenType = ttNewLine do
+        begin
+          HasNewline := True;
+          Advance;
+        end;
+
+        ItemValue := ParseValue;
+        Result.Add(ItemValue);
+        
+        // Skip any newlines after array elements before comma
+        while FCurrentToken.TokenType = ttNewLine do
+        begin
+          HasNewline := True;
+          Advance;
+        end
       until not Match(ttComma);
+      
+      // Skip any newlines before closing bracket
+      while FCurrentToken.TokenType = ttNewLine do
+        Advance;
     end;
     
     Expect(ttRBracket);

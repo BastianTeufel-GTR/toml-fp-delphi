@@ -17,6 +17,8 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 - [TOML Parser for Free Pascal](#toml-parser-for-free-pascal)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
+  - [Changelog](#changelog)
+    - [v1.0.1 - Bug Fixes (Latest)](#v101---bug-fixes-latest)
   - [Features](#features)
   - [To Do / In Progress](#to-do--in-progress)
   - [Requirements](#requirements)
@@ -55,6 +57,14 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
 
+## Changelog
+
+### v1.0.1 - Bug Fixes (Latest)
+
+- Fixed serialization of arrays of tables to use the proper TOML format (`[[table]]`).
+- Fixed parsing of arrays containing inline tables with newlines.
+- Added additional test cases to verify these fixes.
+
 ## Features
 
 - **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures
@@ -67,8 +77,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 
 ## To Do / In Progress
 
-- [ ] More tests for complex structures: Nested tables, array of tables, and dotted keys.
-- [ ] More tests for serializing TOML to file: Making sure objects save back into the correct TOML format.
+- [ ] More tests for complex structures: Arrays of inline tables, json-style dotted keys, and tables with spaces.
 - [ ] More tests for error handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms.
 
 ## Requirements

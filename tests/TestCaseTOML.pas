@@ -5,7 +5,7 @@ unit TestCaseTOML;
 interface
 
 uses
-  SysUtils, Classes, TOML, fpcunit, testregistry, Math;
+  SysUtils, Classes, TOML, TOML.Types, fpcunit, testregistry, Math;
 
 type
   TTOMLTestCase = class(TTestCase)
@@ -25,6 +25,7 @@ type
     procedure Test13_MixedArrayString;
     procedure Test14_MixedArrayBoolean;
     procedure Test15_EmptyArray;
+    procedure Test16_InlineTableArray;
     
     { Table Tests }
     procedure Test20_BasicTableString;
@@ -42,6 +43,7 @@ type
     procedure Test34_SerializeArray;
     procedure Test35_SerializeTable;
     procedure Test36_SerializeNestedTable;
+    procedure Test37_SerializeArrayOfTables;
     
     { Error Cases }
     procedure Test40_InvalidInteger;
@@ -252,6 +254,61 @@ begin
   end;
 end;
 
+procedure TTOMLTestCase.Test16_InlineTableArray;
+var
+  TOML: string;
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+  FruitsArray: TTOMLArray;
+  FruitTable: TTOMLTable;
+  SerializedTOML: string;
+  ParsedAgain: TTOMLTable;
+begin
+  TOML := 'fruits = [' + LineEnding +
+          '    { name = "apple", color = "red" },' + LineEnding +
+          '    { name = "banana", color = "yellow" }' + LineEnding +
+          ']';
+  
+  // Test parsing the TOML format with inline tables in an array
+  Doc := ParseTOML(TOML);
+  try
+    AssertTrue('Fruits array exists', Doc.TryGetValue('fruits', Value));
+    AssertTrue('Fruits is an array', Value.ValueType = tvtArray);
+    
+    FruitsArray := Value.AsArray;
+    AssertEquals('Array has 2 items', 2, FruitsArray.Count);
+    
+    // Check first fruit
+    FruitTable := FruitsArray.Items[0].AsTable;
+    AssertTrue('First fruit has name', FruitTable.TryGetValue('name', Value));
+    AssertEquals('Name is apple', 'apple', Value.AsString);
+    AssertTrue('First fruit has color', FruitTable.TryGetValue('color', Value));
+    AssertEquals('Color is red', 'red', Value.AsString);
+    
+    // Check second fruit
+    FruitTable := FruitsArray.Items[1].AsTable;
+    AssertTrue('Second fruit has name', FruitTable.TryGetValue('name', Value));
+    AssertEquals('Name is banana', 'banana', Value.AsString);
+    AssertTrue('Second fruit has color', FruitTable.TryGetValue('color', Value));
+    AssertEquals('Color is yellow', 'yellow', Value.AsString);
+    
+    // Test serialization and parsing again
+    SerializedTOML := SerializeTOML(Doc);
+    ParsedAgain := ParseTOML(SerializedTOML);
+    try
+      AssertTrue('Re-parsed fruits array exists', ParsedAgain.TryGetValue('fruits', Value));
+      AssertTrue('Re-parsed fruits is an array', Value.ValueType = tvtArray);
+      
+      FruitsArray := Value.AsArray;
+      AssertEquals('Re-parsed array has 2 items', 2, FruitsArray.Count);
+    finally
+      ParsedAgain.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
 procedure TTOMLTestCase.Test20_BasicTableString;
 var
   Data: TTOMLTable;
@@ -454,6 +511,68 @@ begin
     AssertEquals('Serialized nested table matches', LineEnding + '[table.nested]' + LineEnding + 'key = "value"' + LineEnding, TOML);
   finally
     Table.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test37_SerializeArrayOfTables;
+var
+  Doc: TTOMLTable;
+  Products: TTOMLArray;
+  Product1, Product2: TTOMLTable;
+  TOML: string;
+  ParsedDoc: TTOMLTable;
+  Value: TTOMLValue;
+  ParsedProducts: TTOMLArray;
+begin
+  // Create a document with an array of tables
+  Doc := TTOMLTable.Create;
+  try
+    Products := TTOMLArray.Create;
+    Doc.Add('products', Products);
+    
+    // First product
+    Product1 := TTOMLTable.Create;
+    Product1.Add('name', TTOMLString.Create('Hammer'));
+    Product1.Add('sku', TTOMLInteger.Create(738594937));
+    Products.Add(Product1);
+    
+    // Second product
+    Product2 := TTOMLTable.Create;
+    Product2.Add('name', TTOMLString.Create('Nail'));
+    Product2.Add('sku', TTOMLInteger.Create(284758393));
+    Product2.Add('color', TTOMLString.Create('gray'));
+    Products.Add(Product2);
+    
+    // Serialize the document
+    TOML := SerializeTOML(Doc);
+    
+    // Verify serialization format - should use [[products]] format
+    AssertTrue('Serialized output contains [[products]]', Pos('[[products]]', TOML) > 0);
+    
+    // Parse the serialized output
+    ParsedDoc := ParseTOML(TOML);
+    try
+      AssertTrue('Parsed document has products', ParsedDoc.TryGetValue('products', Value));
+      ParsedProducts := Value.AsArray;
+      AssertEquals('Parsed products array has 2 items', 2, ParsedProducts.Count);
+      
+      // Check first product
+      AssertTrue('First product has name', 
+        ParsedProducts.Items[0].AsTable.TryGetValue('name', Value));
+      AssertEquals('First product name is Hammer', 'Hammer', Value.AsString);
+      
+      // Check second product
+      AssertTrue('Second product has name', 
+        ParsedProducts.Items[1].AsTable.TryGetValue('name', Value));
+      AssertEquals('Second product name is Nail', 'Nail', Value.AsString);
+      AssertTrue('Second product has color', 
+        ParsedProducts.Items[1].AsTable.TryGetValue('color', Value));
+      AssertEquals('Second product color is gray', 'gray', Value.AsString);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
   end;
 end;
 
