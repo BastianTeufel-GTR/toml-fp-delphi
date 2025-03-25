@@ -10,13 +10,15 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 > [!NOTE] 
 > 
-> Our extensive test suite (53 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+> Our extensive test suite (55 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
 
 ## Table of Contents
 
 - [TOML Parser for Free Pascal](#toml-parser-for-free-pascal)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
+  - [Changelog](#changelog)
+    - [v1.0.1 - Bug Fixes (Latest)](#v101---bug-fixes-latest)
   - [Features](#features)
   - [To Do / In Progress](#to-do--in-progress)
   - [Requirements](#requirements)
@@ -55,6 +57,14 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
 
+## Changelog
+
+### v1.0.1 - Bug Fixes (Latest)
+
+- Fixed serialization of arrays of tables to use the proper TOML format (`[[table]]`).
+- Fixed parsing of arrays containing inline tables with newlines.
+- Added additional test cases to verify these fixes.
+
 ## Features
 
 - **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures
@@ -63,13 +73,13 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 - **Error Handling:** Detailed error messages and exception handling
 - **Serialization:** Convert Pascal objects to TOML and back
 - **Documentation:** Comprehensive examples and API documentation
-- **Test Suite:** Comprehensive test suite (53 items)
+- **Test Suite:** Comprehensive test suite (55 items)
 
 ## To Do / In Progress
 
-- [ ] More tests for complex structures: Nested tables, array of tables, and dotted keys.
-- [ ] More tests for serializing TOML to file: Making sure objects save back into the correct TOML format.
 - [ ] More tests for error handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms.
+- [ ] Performance optimization for large TOML files
+- [ ] Additional examples for common use cases
 
 ## Requirements
 
@@ -86,7 +96,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 1. Clone the repository:
    
    ```bash
-   git clone https://github.com/yourusername/toml-fp.git
+   git clone https://github.com/ikelaiah/toml-fp.git
    ```
 
 2. Add to your project:
@@ -483,7 +493,7 @@ Serializes a `TTOMLValue` and saves it to a file.
 
 ## Testing
 
-The library includes a comprehensive test suite (53 items). 
+The library includes a comprehensive test suite (55 items). 
 
 To run the tests:
 

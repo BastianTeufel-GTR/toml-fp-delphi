@@ -17,8 +17,8 @@
       <Unit>
         <Filename Value="TestCaseTOML.pas"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="67"/>
-        <CursorPos X="40" Y="77"/>
+        <TopLine Value="290"/>
+        <CursorPos X="46" Y="297"/>
         <UsageCount Value="44"/>
         <Loaded Value="True"/>
       </Unit>
@@ -37,31 +37,23 @@
       </Unit>
       <Unit>
         <Filename Value="..\src\TOML.Serializer.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
         <TopLine Value="219"/>
-        <CursorPos X="8" Y="229"/>
+        <CursorPos X="49" Y="230"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="..\src\TOML.Types.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <TopLine Value="280"/>
-        <CursorPos X="39" Y="284"/>
+        <CursorPos X="5" Y="287"/>
         <UsageCount Value="14"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="..\src\TOML.Parser.pas"/>
-        <Caret Line="83" Column="14" TopLine="74"/>
-      </Position>
-      <Position>
-        <Filename Value="..\src\TOML.Parser.pas"/>
-        <Caret Line="88" Column="31" TopLine="79"/>
-      </Position>
       <Position>
         <Filename Value="..\src\TOML.Serializer.pas"/>
         <Caret Line="8" Column="54"/>
@@ -173,6 +165,14 @@
       <Position>
         <Filename Value="..\src\TOML.Types.pas"/>
         <Caret Line="329" Column="9" TopLine="318"/>
+      </Position>
+      <Position>
+        <Filename Value="TestCaseTOML.pas"/>
+        <Caret Line="68" Column="51" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="TestCaseTOML.pas"/>
+        <Caret Line="276" Column="56" TopLine="275"/>
       </Position>
     </JumpHistory>
     <RunParams>

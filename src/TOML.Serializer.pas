@@ -253,22 +253,38 @@ procedure TTOMLSerializer.WriteArray(const AArray: TTOMLArray);
 var
   i: Integer;
   Item: TTOMLValue;
+  AllTables: Boolean;
 begin
-  FStringBuilder.Append('[');
-  
-  if AArray.Count > 0 then
+  // Check if this is an array of tables (all elements are tables)
+  AllTables := (AArray.Count > 0);
+  for i := 0 to AArray.Count - 1 do
   begin
-    for i := 0 to AArray.Count - 1 do
+    if AArray.GetItem(i).ValueType <> tvtTable then
     begin
-      if i > 0 then
-        FStringBuilder.Append(', ');
-      
-      Item := AArray.GetItem(i);
-      WriteValue(Item);
+      AllTables := False;
+      Break;
     end;
   end;
   
-  FStringBuilder.Append(']');
+  // Arrays of tables are handled specially during top-level serialization
+  if not AllTables then
+  begin
+    FStringBuilder.Append('[');
+    
+    if AArray.Count > 0 then
+    begin
+      for i := 0 to AArray.Count - 1 do
+      begin
+        if i > 0 then
+          FStringBuilder.Append(', ');
+        
+        Item := AArray.GetItem(i);
+        WriteValue(Item);
+      end;
+    end;
+    
+    FStringBuilder.Append(']');
+  end;
 end;
 
 procedure TTOMLSerializer.WriteValue(const AValue: TTOMLValue);
@@ -305,6 +321,9 @@ var
   First: Boolean;
   Pair: TTOMLKeyValuePair;
   SubTable: TTOMLTable;
+  i: Integer;
+  ArrayValue: TTOMLArray;
+  AllTables: Boolean;
 begin
   if AInline then
   begin
@@ -328,11 +347,14 @@ begin
   end
   else
   begin
-    // First write all non-table values
+    // First write all non-array and non-table values
     for Pair in ATable.Items do
     begin
-      if not (Pair.Value is TTOMLTable) then
+      if not ((Pair.Value.ValueType = tvtTable) or 
+              ((Pair.Value.ValueType = tvtArray) and (Pair.Value.AsArray.Count > 0) and 
+               (Pair.Value.AsArray.GetItem(0).ValueType = tvtTable))) then
       begin
+        // Remove indentation for table key-value pairs
         WriteKey(Pair.Key);
         FStringBuilder.Append(' = ');
         WriteValue(Pair.Value);
@@ -340,12 +362,44 @@ begin
       end;
     end;
     
-    // Then write all table values with proper headers
+    // Then write arrays of tables
     for Pair in ATable.Items do
     begin
-      if Pair.Value is TTOMLTable then
+      if (Pair.Value.ValueType = tvtArray) and (Pair.Value.AsArray.Count > 0) then
       begin
-        SubTable := TTOMLTable(Pair.Value);
+        ArrayValue := Pair.Value.AsArray;
+        
+        // Check if this is an array of tables
+        AllTables := True;
+        for i := 0 to ArrayValue.Count - 1 do
+        begin
+          if ArrayValue.GetItem(i).ValueType <> tvtTable then
+          begin
+            AllTables := False;
+            Break;
+          end;
+        end;
+        
+        if AllTables then
+        begin
+          // Write as array of tables [[key]]
+          for i := 0 to ArrayValue.Count - 1 do
+          begin
+            if i > 0 then
+              WriteLine;
+            WriteLine('[[' + Pair.Key + ']]');
+            
+            // Save current indentation level
+            WriteTable(ArrayValue.GetItem(i).AsTable);
+          end;
+          continue;
+        end;
+      end;
+      
+      // Handle regular tables
+      if Pair.Value.ValueType = tvtTable then
+      begin
+        SubTable := Pair.Value.AsTable;
         if SubTable.Items.Count > 0 then
         begin
           WriteLine;
