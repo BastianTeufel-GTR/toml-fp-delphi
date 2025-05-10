@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changelog
 
+### v1.0.2 - Bug Fixes (2025-05-dd)
+
+- Fixed serialization of nested tables to use correct dotted key notation (e.g., `[parent.child]`) instead of separate table declarations.
+
 ### v1.0.1 - Bug Fixes (2025-03-24)
 
 - Fixed serialization of arrays of tables to use the proper TOML format (`[[table]]`).
