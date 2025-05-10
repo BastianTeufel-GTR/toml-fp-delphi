@@ -157,6 +157,8 @@ begin
   FStringBuilder := TStringBuilder.Create;
   FIndentLevel := 0;
   FCurrentPath := TStringList.Create;
+  FCurrentPath.Delimiter := '.';      // Set delimiter for path joining
+  FCurrentPath.StrictDelimiter := True; // Use strict delimiter handling
 end;
 
 destructor TTOMLSerializer.Destroy;
@@ -324,6 +326,7 @@ var
   i: Integer;
   ArrayValue: TTOMLArray;
   AllTables: Boolean;
+  TablePath: string; // Added variable to track table path
 begin
   if AInline then
   begin
@@ -396,15 +399,26 @@ begin
         end;
       end;
       
-      // Handle regular tables
+      // Handle regular tables with path tracking
       if Pair.Value.ValueType = tvtTable then
       begin
         SubTable := Pair.Value.AsTable;
         if SubTable.Items.Count > 0 then
         begin
           WriteLine;
-          WriteLine('[' + Pair.Key + ']');
+          
+          // Build the table path based on current path
+          if FCurrentPath.Count = 0 then
+            TablePath := Pair.Key
+          else
+            TablePath := FCurrentPath.DelimitedText + '.' + Pair.Key;
+            
+          WriteLine('[' + TablePath + ']');
+          
+          // Save current path, add new segment, process table, then restore
+          FCurrentPath.Add(Pair.Key);
           WriteTable(SubTable);
+          FCurrentPath.Delete(FCurrentPath.Count - 1);
         end;
       end;
     end;
@@ -418,4 +432,4 @@ begin
   Result := FStringBuilder.ToString;
 end;
 
-end. 
+end.

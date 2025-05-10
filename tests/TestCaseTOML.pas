@@ -43,6 +43,7 @@ type
     procedure Test34_SerializeArray;
     procedure Test35_SerializeTable;
     procedure Test36_SerializeNestedTable;
+    procedure Test36_1_SerializeHierarchicalNestedTable;
     procedure Test37_SerializeArrayOfTables;
     
     { Error Cases }
@@ -511,6 +512,34 @@ begin
     AssertEquals('Serialized nested table matches', LineEnding + '[table.nested]' + LineEnding + 'key = "value"' + LineEnding, TOML);
   finally
     Table.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test36_1_SerializeHierarchicalNestedTable;
+var
+  RootTable, FruitTable, BananaTable: TTOMLTable;
+  TOML: string;
+begin
+  RootTable := TTOMLTable.Create;
+  try
+    BananaTable := TTOMLTable.Create;
+    BananaTable.Add('color', TTOMLString.Create('yellow'));
+    
+    FruitTable := TTOMLTable.Create;
+    FruitTable.Add('banana', BananaTable);
+    
+    RootTable.Add('fruit', FruitTable);
+    
+    TOML := SerializeTOML(RootTable);
+    
+    // Expected format: [fruit.banana]\ncolor = "yellow"
+    AssertTrue('TOML contains fruit.banana section', Pos('[fruit.banana]', TOML) > 0);
+    AssertTrue('TOML contains color = "yellow"', Pos('color = "yellow"', TOML) > 0);
+    
+    // Make sure improper format isn't present
+    AssertEquals('TOML should not have separate [banana] section', 0, Pos('[banana]', TOML));
+  finally
+    RootTable.Free;
   end;
 end;
 
@@ -1272,4 +1301,4 @@ end;
 
 initialization
   RegisterTest(TTOMLTestCase);
-end. 
+end.
