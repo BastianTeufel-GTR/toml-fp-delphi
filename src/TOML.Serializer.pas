@@ -326,7 +326,9 @@ var
   i: Integer;
   ArrayValue: TTOMLArray;
   AllTables: Boolean;
-  TablePath: string; // Added variable to track table path
+  TablePath: string; 
+  PathComponents: TStringList;
+  Component: string;
 begin
   if AInline then
   begin
@@ -403,22 +405,48 @@ begin
       if Pair.Value.ValueType = tvtTable then
       begin
         SubTable := Pair.Value.AsTable;
-        if SubTable.Items.Count > 0 then
-        begin
-          WriteLine;
+        
+        WriteLine;
+        
+        // Build path components properly
+        PathComponents := TStringList.Create;
+        try
+          // Add all current path components with proper quoting if needed
+          for i := 0 to FCurrentPath.Count - 1 do
+          begin
+            Component := FCurrentPath[i];
+            if Pos('.', Component) > 0 then
+              PathComponents.Add('"' + Component + '"')
+            else
+              PathComponents.Add(Component);
+          end;
           
-          // Build the table path based on current path
-          if FCurrentPath.Count = 0 then
-            TablePath := Pair.Key
+          // Add the current key with proper quoting if needed
+          if Pos('.', Pair.Key) > 0 then
+            PathComponents.Add('"' + Pair.Key + '"')
           else
-            TablePath := FCurrentPath.DelimitedText + '.' + Pair.Key;
-            
+            PathComponents.Add(Pair.Key);
+          
+          // Join with dots to create the full path
+          TablePath := '';
+          for i := 0 to PathComponents.Count - 1 do
+          begin
+            if i > 0 then
+              TablePath := TablePath + '.';
+            TablePath := TablePath + PathComponents[i];
+          end;
+          
           WriteLine('[' + TablePath + ']');
           
-          // Save current path, add new segment, process table, then restore
-          FCurrentPath.Add(Pair.Key);
-          WriteTable(SubTable);
-          FCurrentPath.Delete(FCurrentPath.Count - 1);
+          // Process the subtable recursively if it has items
+          if SubTable.Items.Count > 0 then
+          begin
+            FCurrentPath.Add(Pair.Key);
+            WriteTable(SubTable);
+            FCurrentPath.Delete(FCurrentPath.Count - 1);
+          end;
+        finally
+          PathComponents.Free;
         end;
       end;
     end;

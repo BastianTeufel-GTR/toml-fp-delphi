@@ -44,6 +44,7 @@ type
     procedure Test35_SerializeTable;
     procedure Test36_SerializeNestedTable;
     procedure Test36_1_SerializeHierarchicalNestedTable;
+    procedure Test36_2_SerializeLiteralDottedKeyTable;
     procedure Test37_SerializeArrayOfTables;
     
     { Error Cases }
@@ -538,6 +539,37 @@ begin
     
     // Make sure improper format isn't present
     AssertEquals('TOML should not have separate [banana] section', 0, Pos('[banana]', TOML));
+  finally
+    RootTable.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test36_2_SerializeLiteralDottedKeyTable;
+var
+  RootTable, ValueTable: TTOMLTable;
+  TOML: string;
+begin
+  RootTable := TTOMLTable.Create;
+  try
+    // Create a table with a value
+    ValueTable := TTOMLTable.Create;
+    ValueTable.Add('color', TTOMLString.Create('red'));
+    
+    // Add it with a key containing dots (should be treated as a literal key, not a path)
+    RootTable.Add('fruit.apple', ValueTable);
+    
+    TOML := SerializeTOML(RootTable);
+    
+    // Expected format: ["fruit.apple"]\ncolor = "red"
+    AssertTrue('TOML contains quoted key section ["fruit.apple"]', 
+      Pos('["fruit.apple"]', TOML) > 0);
+    AssertTrue('TOML contains color = "red"', 
+      Pos('color = "red"', TOML) > 0);
+    
+    // Make sure improper format isn't present
+    // It shouldn't interpret as [fruit.apple] (without quotes)
+    AssertEquals('TOML should not have unquoted [fruit.apple] section', 
+      0, Pos('[fruit.apple]', TOML));
   finally
     RootTable.Free;
   end;
