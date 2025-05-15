@@ -191,19 +191,16 @@ var
   i: Integer;
   C: Char;
 begin
+  // Empty keys need quoting
   if AKey = '' then
     Exit(True);
     
-  // Check first character - must be letter or underscore
-  C := AKey[1];
-  if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or (C = '_')) then
-    Exit(True);
-    
-  // Check rest of characters - must be letter, number, underscore or dash
-  for i := 2 to Length(AKey) do
+  // Check all characters - must be letter, number, underscore or dash
+  for i := 1 to Length(AKey) do
   begin
     C := AKey[i];
-    if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or (C in ['0'..'9']) or (C = '_') or (C = '-')) then
+    if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or 
+            (C in ['0'..'9']) or (C = '_') or (C = '-')) then
       Exit(True);
   end;
   
@@ -415,14 +412,14 @@ begin
           for i := 0 to FCurrentPath.Count - 1 do
           begin
             Component := FCurrentPath[i];
-            if Pos('.', Component) > 0 then
+            if NeedsQuoting(Component) then
               PathComponents.Add('"' + Component + '"')
             else
               PathComponents.Add(Component);
           end;
           
           // Add the current key with proper quoting if needed
-          if Pos('.', Pair.Key) > 0 then
+          if NeedsQuoting(Pair.Key) then
             PathComponents.Add('"' + Pair.Key + '"')
           else
             PathComponents.Add(Pair.Key);
