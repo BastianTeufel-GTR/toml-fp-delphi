@@ -30,6 +30,7 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
     - [Common Use Cases](#common-use-cases)
       - [Working with Arrays](#working-with-arrays)
       - [Nested Tables](#nested-tables)
+      - [Hierarchical Paths vs Literal Dotted Keys](#hierarchical-paths-vs-literal-dotted-keys)
       - [Serializing Complex Structures](#serializing-complex-structures)
     - [Memory Management](#memory-management)
       - [Creating Tables](#creating-tables)
@@ -185,7 +186,7 @@ begin
       WriteLn('Error saving configuration');
   finally
     Config.Free;
-  end;
+  end.
 end.
 ```
 
@@ -242,6 +243,42 @@ begin
   end.
 end.
 ```
+
+#### Hierarchical Paths vs Literal Dotted Keys
+
+TOML-FP correctly handles the distinction between hierarchical paths and literal dotted keys as per the TOML specification:
+
+1. **Hierarchical Table Paths**:
+   ```pascal
+   // This creates a nested hierarchy: [server.database]
+   ServerTable := TOMLTable;
+   DatabaseTable := TOMLTable;
+   DatabaseTable.Add('port', TOMLInteger(5432));
+   
+   ServerTable.Add('database', DatabaseTable);
+   Config.Add('server', ServerTable);
+   ```
+   Serializes to:
+   ```toml
+   [server.database]
+   port = 5432
+   ```
+
+2. **Literal Dotted Keys**:
+   ```pascal
+   // This creates a literal dotted key: ["server.database"]
+   LiteralTable := TOMLTable;
+   LiteralTable.Add('port', TOMLInteger(5432));
+   
+   Config.Add('server.database', LiteralTable);
+   ```
+   Serializes to:
+   ```toml
+   ["server.database"]
+   port = 5432
+   ```
+
+The serializer automatically determines whether to quote key components based on the TOML specification rules.
 
 #### Serializing Complex Structures
 ```pascal
