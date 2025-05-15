@@ -280,6 +280,11 @@ TOML-FP correctly handles the distinction between hierarchical paths and literal
 
 The serializer automatically determines whether to quote key components based on the TOML specification rules.
 
+> [!TIP]  
+> According to the TOML specification: "Quoted keys follow the exact same rules as either basic strings or literal strings and allow you to use a much broader set of key names. **Best practice is to use bare keys except when absolutely necessary.**"
+>
+> In practice, this means you should design your configuration to use hierarchical nesting with simple key names rather than relying on keys with dots or special characters.
+
 #### Serializing Complex Structures
 ```pascal
 program BasicSerializeTOML;
