@@ -43,6 +43,8 @@ type
     procedure Test34_SerializeArray;
     procedure Test35_SerializeTable;
     procedure Test36_SerializeNestedTable;
+    procedure Test36_1_SerializeHierarchicalNestedTable;
+    procedure Test36_2_SerializeLiteralDottedKeyTable;
     procedure Test37_SerializeArrayOfTables;
     
     { Error Cases }
@@ -78,6 +80,8 @@ type
     procedure Test68_KeyValidation;
     procedure Test69_TableArrayNesting;
     procedure Test70_ComplexKeys;
+    procedure Test71_HierarchicalNestedTable;
+    procedure Test72_LiteralDottedKeyTable;
   end;
 
 implementation
@@ -508,9 +512,68 @@ begin
     InnerTable.Add('key', TOMLString('value'));
     Table.Add('table.nested', InnerTable);
     TOML := SerializeTOML(Table);
-    AssertEquals('Serialized nested table matches', LineEnding + '[table.nested]' + LineEnding + 'key = "value"' + LineEnding, TOML);
+    AssertEquals('Serialized nested table matches', LineEnding + '["table.nested"]' + LineEnding + 'key = "value"' + LineEnding, TOML);
   finally
     Table.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test36_1_SerializeHierarchicalNestedTable;
+var
+  RootTable, FruitTable, BananaTable: TTOMLTable;
+  TOML: string;
+begin
+  RootTable := TTOMLTable.Create;
+  try
+    BananaTable := TTOMLTable.Create;
+    BananaTable.Add('color', TTOMLString.Create('yellow'));
+    
+    FruitTable := TTOMLTable.Create;
+    FruitTable.Add('banana', BananaTable);
+    
+    RootTable.Add('fruit', FruitTable);
+    
+    TOML := SerializeTOML(RootTable);
+    
+    // Expected format: [fruit.banana]\ncolor = "yellow"
+    AssertTrue('TOML contains fruit.banana section', Pos('[fruit.banana]', TOML) > 0);
+    AssertTrue('TOML contains color = "yellow"', Pos('color = "yellow"', TOML) > 0);
+    
+    // Make sure improper format isn't present
+    AssertEquals('TOML should not have separate [banana] section', 0, Pos('[banana]', TOML));
+  finally
+    RootTable.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test36_2_SerializeLiteralDottedKeyTable;
+var
+  RootTable, ValueTable: TTOMLTable;
+  TOML: string;
+begin
+  RootTable := TTOMLTable.Create;
+  try
+    // Create a table with a value
+    ValueTable := TTOMLTable.Create;
+    ValueTable.Add('color', TTOMLString.Create('red'));
+    
+    // Add it with a key containing dots (should be treated as a literal key, not a path)
+    RootTable.Add('fruit.apple', ValueTable);
+    
+    TOML := SerializeTOML(RootTable);
+    
+    // Expected format: ["fruit.apple"]\ncolor = "red"
+    AssertTrue('TOML contains quoted key section ["fruit.apple"]', 
+      Pos('["fruit.apple"]', TOML) > 0);
+    AssertTrue('TOML contains color = "red"', 
+      Pos('color = "red"', TOML) > 0);
+    
+    // Make sure improper format isn't present
+    // It shouldn't interpret as [fruit.apple] (without quotes)
+    AssertEquals('TOML should not have unquoted [fruit.apple] section', 
+      0, Pos('[fruit.apple]', TOML));
+  finally
+    RootTable.Free;
   end;
 end;
 
@@ -1270,6 +1333,123 @@ begin
   end;
 end;
 
+procedure TTOMLTestCase.Test71_HierarchicalNestedTable;
+var
+  Doc: TTOMLTable;
+  DogTable, TatterTable, ManTable: TTOMLTable;
+  Value, SubValue, SubSubValue, NameValue: TTOMLValue;
+  SerializedTOML: string;
+  ParsedDoc: TTOMLTable;
+begin
+  // Create a three-level hierarchical path: dog.tatter.man
+  Doc := TTOMLTable.Create;
+  try
+    // Create the leaf table (man) first
+    ManTable := TTOMLTable.Create;
+    ManTable.Add('name', TTOMLString.Create('Rex'));
+    
+    // Create the middle table (tatter) and add man to it
+    TatterTable := TTOMLTable.Create;
+    TatterTable.Add('man', ManTable);
+    
+    // Create the top-level table (dog) and add tatter to it
+    DogTable := TTOMLTable.Create;
+    DogTable.Add('tatter', TatterTable);
+    
+    // Add dog to the root document
+    Doc.Add('dog', DogTable);
+    
+    // Serialize to TOML format
+    SerializedTOML := SerializeTOML(Doc);
+    
+    // Verify hierarchical format is used correctly (no quotes)
+    AssertTrue('Serialized TOML has [dog.tatter.man] section', 
+      Pos('[dog.tatter.man]', SerializedTOML) > 0);
+      
+    // Make sure it doesn't have quotes around components
+    AssertEquals('No quoted sections should be present', 
+      0, Pos('"tatter"', SerializedTOML));
+    
+    // Parse the serialized output to verify round-trip
+    ParsedDoc := ParseTOML(SerializedTOML);
+    try
+      // Verify we can access all levels through nested lookups
+      AssertTrue('Root has dog table', 
+        ParsedDoc.TryGetValue('dog', Value));
+      AssertTrue('Dog has tatter table', 
+        Value.AsTable.TryGetValue('tatter', SubValue));
+      AssertTrue('Tatter has man table', 
+        SubValue.AsTable.TryGetValue('man', SubSubValue));
+      AssertTrue('Man has name field', 
+        SubSubValue.AsTable.TryGetValue('name', NameValue));
+      AssertEquals('Name is Rex', 'Rex', NameValue.AsString);
+        
+      // Verify the hierarchical structure was preserved
+      // Note: Direct dot notation access may not be supported by the parser
+      // Instead, verify through the nested structure which we've already confirmed works
+      AssertTrue('Hierarchical structure was preserved correctly',
+        ParsedDoc.TryGetValue('dog', Value) and
+        Value.AsTable.TryGetValue('tatter', SubValue) and
+        SubValue.AsTable.TryGetValue('man', SubSubValue) and
+        SubSubValue.AsTable.TryGetValue('name', NameValue) and
+        (NameValue.AsString = 'Rex'));
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test72_LiteralDottedKeyTable;
+var
+  Doc: TTOMLTable;
+  DogTable, ManTable: TTOMLTable; 
+  Value, SubValue: TTOMLValue;
+  SerializedTOML: string;
+  ParsedDoc: TTOMLTable;
+begin
+  // Create a table with a literal dotted key: dog."tatter.man"
+  Doc := TTOMLTable.Create;
+  try
+    // Create a table to be the value of the dotted key
+    ManTable := TTOMLTable.Create;
+    ManTable.Add('name', TTOMLString.Create('Spot'));
+    
+    // Create parent table
+    DogTable := TTOMLTable.Create;
+    // Add with a literal dotted key
+    DogTable.Add('tatter.man', ManTable);
+    
+    // Add to the root document
+    Doc.Add('dog', DogTable);
+    
+    // Serialize to TOML format
+    SerializedTOML := SerializeTOML(Doc);
+    
+    // Verify dotted key is properly quoted
+    AssertTrue('Serialized TOML has [dog."tatter.man"] section', 
+      Pos('[dog."tatter.man"]', SerializedTOML) > 0);
+    
+    // Parse the serialized output to verify round-trip
+    ParsedDoc := ParseTOML(SerializedTOML);
+    try
+      // Verify we can access the tables correctly
+      AssertTrue('Root has dog table', 
+        ParsedDoc.TryGetValue('dog', Value));
+      AssertTrue('Dog has tatter.man table', 
+        Value.AsTable.TryGetValue('tatter.man', SubValue));
+      AssertTrue('tatter.man has name field', 
+        SubValue.AsTable.TryGetValue('name', Value));
+      AssertEquals('Name is Spot', 'Spot', Value.AsString);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TTOMLTestCase);
-end. 
+end.

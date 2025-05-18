@@ -157,6 +157,8 @@ begin
   FStringBuilder := TStringBuilder.Create;
   FIndentLevel := 0;
   FCurrentPath := TStringList.Create;
+  FCurrentPath.Delimiter := '.';      // Set delimiter for path joining
+  FCurrentPath.StrictDelimiter := True; // Use strict delimiter handling
 end;
 
 destructor TTOMLSerializer.Destroy;
@@ -189,19 +191,16 @@ var
   i: Integer;
   C: Char;
 begin
+  // Empty keys need quoting
   if AKey = '' then
     Exit(True);
     
-  // Check first character - must be letter or underscore
-  C := AKey[1];
-  if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or (C = '_')) then
-    Exit(True);
-    
-  // Check rest of characters - must be letter, number, underscore or dash
-  for i := 2 to Length(AKey) do
+  // Check all characters - must be letter, number, underscore or dash
+  for i := 1 to Length(AKey) do
   begin
     C := AKey[i];
-    if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or (C in ['0'..'9']) or (C = '_') or (C = '-')) then
+    if not ((C in ['A'..'Z']) or (C in ['a'..'z']) or 
+            (C in ['0'..'9']) or (C = '_') or (C = '-')) then
       Exit(True);
   end;
   
@@ -324,6 +323,9 @@ var
   i: Integer;
   ArrayValue: TTOMLArray;
   AllTables: Boolean;
+  TablePath: string; 
+  PathComponents: TStringList;
+  Component: string;
 begin
   if AInline then
   begin
@@ -396,15 +398,52 @@ begin
         end;
       end;
       
-      // Handle regular tables
+      // Handle regular tables with path tracking
       if Pair.Value.ValueType = tvtTable then
       begin
         SubTable := Pair.Value.AsTable;
-        if SubTable.Items.Count > 0 then
-        begin
-          WriteLine;
-          WriteLine('[' + Pair.Key + ']');
-          WriteTable(SubTable);
+        
+        WriteLine;
+        
+        // Build path components properly
+        PathComponents := TStringList.Create;
+        try
+          // Add all current path components with proper quoting if needed
+          for i := 0 to FCurrentPath.Count - 1 do
+          begin
+            Component := FCurrentPath[i];
+            if NeedsQuoting(Component) then
+              PathComponents.Add('"' + Component + '"')
+            else
+              PathComponents.Add(Component);
+          end;
+          
+          // Add the current key with proper quoting if needed
+          if NeedsQuoting(Pair.Key) then
+            PathComponents.Add('"' + Pair.Key + '"')
+          else
+            PathComponents.Add(Pair.Key);
+          
+          // Join with dots to create the full path
+          TablePath := '';
+          for i := 0 to PathComponents.Count - 1 do
+          begin
+            if i > 0 then
+              TablePath := TablePath + '.';
+            TablePath := TablePath + PathComponents[i];
+          end;
+          
+          WriteLine('[' + TablePath + ']');
+          
+          // Process the subtable recursively if it has items
+          if SubTable.Items.Count > 0 then
+          begin
+            FCurrentPath.Add(Pair.Key);
+            WriteTable(SubTable);
+            FCurrentPath.Delete(FCurrentPath.Count - 1);
+          end;
+        finally
+          PathComponents.Free;
         end;
       end;
     end;
@@ -418,4 +457,4 @@ begin
   Result := FStringBuilder.ToString;
 end;
 
-end. 
+end.

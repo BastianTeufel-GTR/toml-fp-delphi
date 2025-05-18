@@ -1,6 +1,6 @@
 # Test Coverage Overview
 
-Your test suite comprises 55 tests, categorized as follows:
+Your test suite comprises 59 tests, categorized as follows:
 
 ## Basic Types Tests (Procedures 1-6):
 - String, Integer, Float, Boolean, DateTime values.
@@ -21,6 +21,7 @@ Your test suite comprises 55 tests, categorized as follows:
 ## Serialization Tests (Procedures 30-37):
 - Type-Specific Serialization: Ensures each data type serializes correctly.
 - Table Serialization: Handling nested and complex table structures.
+- Hierarchical Table Paths vs Literal Dotted Keys: Proper distinction between `[server.database]` (hierarchical) and `["server.database"]` (literal dotted key).
 - Serialization Accuracy: Verifying the output matches expected TOML strings.
 - Array of Tables Serialization: Ensuring arrays of tables are properly serialized using the [[table]] format.
 
@@ -36,10 +37,12 @@ Your test suite comprises 55 tests, categorized as follows:
 - DateTime Variants: Local dates, times, and datetime with offsets.
 - Array of Tables, Dotted Table Keys: Advanced table structures.
 
-## Additional Specification Tests (Procedures 61-70):
+## Additional Specification Tests (Procedures 61-72):
 - Infinity and NaN Handling: Parsing special floating-point values.
 - Offset DateTimes: Timezone-aware datetime parsing.
 - Quoted Keys, Whitespace Handling: Ensuring flexibility in key definitions and parsing.
 - Array Type Validation: Ensuring array types conform to TOML spec.
 - Table Array Nesting: Testing nested array of tables structures.
 - Complex Keys: Handling complex key expressions.
+- Hierarchical Nested Tables: Correctly serializing nested table hierarchies (Test71).
+- Literal Dotted Keys: Properly quoting keys containing dots (Test72).

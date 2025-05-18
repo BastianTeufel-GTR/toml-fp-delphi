@@ -2,28 +2,26 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
-[![Lazarus](https://img.shields.io/badge/Lazarus-3.6-orange.svg)](https://www.lazarus-ide.org/)
+[![Lazarus](https://img.shields.io/badge/Lazarus-4.0-orange.svg)](https://www.lazarus-ide.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
+[![Version](https://img.shields.io/badge/Version-1.0.2-blueviolet.svg)]()
 
 
-A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, _almost_ fully compliant with the TOML v1.0.0 specification.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, fully compliant with the TOML v1.0.0 specification.
 
 > [!NOTE] 
 > 
-> Our extensive test suite (55 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+> Our extensive test suite (56 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
 
 ## Table of Contents
 
 - [TOML Parser for Free Pascal](#toml-parser-for-free-pascal)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
-  - [Changelog](#changelog)
-    - [v1.0.1 - Bug Fixes (Latest)](#v101---bug-fixes-latest)
   - [Features](#features)
   - [To Do / In Progress](#to-do--in-progress)
   - [Requirements](#requirements)
   - [Installation](#installation)
-    - [Requirements](#requirements-1)
     - [Steps](#steps)
   - [Quick Start](#quick-start)
     - [Basic Usage](#basic-usage)
@@ -32,6 +30,7 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
     - [Common Use Cases](#common-use-cases)
       - [Working with Arrays](#working-with-arrays)
       - [Nested Tables](#nested-tables)
+      - [Hierarchical Paths vs Literal Dotted Keys](#hierarchical-paths-vs-literal-dotted-keys)
       - [Serializing Complex Structures](#serializing-complex-structures)
     - [Memory Management](#memory-management)
       - [Creating Tables](#creating-tables)
@@ -57,23 +56,15 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
 
-## Changelog
-
-### v1.0.1 - Bug Fixes (Latest)
-
-- Fixed serialization of arrays of tables to use the proper TOML format (`[[table]]`).
-- Fixed parsing of arrays containing inline tables with newlines.
-- Added additional test cases to verify these fixes.
-
 ## Features
 
-- **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures
+- **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures, including proper serialization of nested (dotted) tables.
 - **Type-Safe API:** Strong typing with compile-time checks
 - **Memory Management:** Automatic cleanup with proper object lifecycle management
 - **Error Handling:** Detailed error messages and exception handling
 - **Serialization:** Convert Pascal objects to TOML and back
 - **Documentation:** Comprehensive examples and API documentation
-- **Test Suite:** Comprehensive test suite (55 items)
+- **Test Suite:** Comprehensive test suite (56 items)
 
 ## To Do / In Progress
 
@@ -84,15 +75,13 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 ## Requirements
 
 - Free Pascal Compiler 3.2.2 or later
-- Lazarus IDE 3.6 (for running tests)
+- Lazarus IDE 4.0 (for running tests)
 
 ## Installation
 
-### Requirements
-- Free Pascal Compiler 3.2.2 or later
-- Lazarus IDE 3.6 (for running tests)
 
 ### Steps
+
 1. Clone the repository:
    
    ```bash
@@ -100,13 +89,19 @@ TOML-FP provides a complete solution for working with TOML configuration files i
    ```
 
 2. Add to your project:
-   - Copy the `src` directory to your project
-   - Add units to your project's search path
-   - Add to your uses clause:
+   - Copy the `src` directory to your project.
+   - Add the `src` directory to your project's unit search path.
+   - Add the main `TOML` unit to your `uses` clause:
      ```pascal
      uses
-       TOML, TOML.Types, TOML.Parser, TOML.Serializer;
+       TOML; 
      ```
+   - For direct access to specific types like `TTOMLValueType` or if you prefer explicit qualification, you might also include `TOML.Types`:
+     ```pascal
+     uses
+       TOML, TOML.Types; // If needing TTOMLValueType, etc.
+     ```
+     However, for most common operations (parsing, serializing, using helper functions like `TOMLTable`), `uses TOML;` is sufficient.
 
 ## Quick Start
 
@@ -191,7 +186,7 @@ begin
       WriteLn('Error saving configuration');
   finally
     Config.Free;
-  end;
+  end.
 end.
 ```
 
@@ -215,7 +210,7 @@ begin
     WriteLn(SerializeTOML(Config));
   finally
     Config.Free;
-  end;
+  end.
 end.
 ```
 
@@ -223,21 +218,72 @@ end.
 ```pascal
 var
   Config: TTOMLTable;
-  Database: TTOMLTable;
+  Database, Server: TTOMLTable;
+  SerializedTOML: string;
 begin
   Config := TOMLTable;
   try
     Database := TOMLTable;
     Database.Add('host', TOMLString('localhost'));
     Database.Add('port', TOMLInteger(5432));
-    Config.Add('database', Database);
     
-    WriteLn(SerializeTOML(Config));
+    Server := TOMLTable;
+    Server.Add('database', Database); // Nest Database table under Server
+    
+    Config.Add('server', Server);     // Nest Server table under Config
+    
+    SerializedTOML := SerializeTOML(Config);
+    WriteLn(SerializedTOML);
+    // Expected output:
+    // [server.database]
+    // host = "localhost"
+    // port = 5432
   finally
-    Config.Free;
-  end;
+    Config.Free; // Frees Config, Server, and Database tables
+  end.
 end.
 ```
+
+#### Hierarchical Paths vs Literal Dotted Keys
+
+TOML-FP correctly handles the distinction between hierarchical paths and literal dotted keys as per the TOML specification:
+
+1. **Hierarchical Table Paths**:
+   ```pascal
+   // This creates a nested hierarchy: [server.database]
+   ServerTable := TOMLTable;
+   DatabaseTable := TOMLTable;
+   DatabaseTable.Add('port', TOMLInteger(5432));
+   
+   ServerTable.Add('database', DatabaseTable);
+   Config.Add('server', ServerTable);
+   ```
+   Serializes to:
+   ```toml
+   [server.database]
+   port = 5432
+   ```
+
+2. **Literal Dotted Keys**:
+   ```pascal
+   // This creates a literal dotted key: ["server.database"]
+   LiteralTable := TOMLTable;
+   LiteralTable.Add('port', TOMLInteger(5432));
+   
+   Config.Add('server.database', LiteralTable);
+   ```
+   Serializes to:
+   ```toml
+   ["server.database"]
+   port = 5432
+   ```
+
+The serializer automatically determines whether to quote key components based on the TOML specification rules.
+
+> [!TIP]  
+> According to the TOML specification: "Quoted keys follow the exact same rules as either basic strings or literal strings and allow you to use a much broader set of key names. **Best practice is to use bare keys except when absolutely necessary.**"
+>
+> In practice, this means you should design your configuration to use hierarchical nesting with simple key names rather than relying on keys with dots or special characters.
 
 #### Serializing Complex Structures
 ```pascal
@@ -286,7 +332,7 @@ begin
 
   finally
     Config.Free;
-  end;
+  end.
 end.
 ```
 
@@ -352,6 +398,7 @@ end.
 ```
 
 #### Avoid Explicitly Freeing Nested Objects:
+
 - Do not manually free nested tables or values to prevent memory management issues.
 
 ## API Reference
@@ -425,42 +472,14 @@ Creates a TOML table.
 ```pascal
   function ParseTOML(const ATOML: string): TTOMLTable;
 ```
-Parses a TOML-formatted string into a `TTOMLTable` object.
-
-```pascal
-  function ParseTOML(const ATOML: string): TTOMLTable;
-  begin
-    Result := TOML.Parser.ParseTOMLString(ATOML);
-  end;
-```
+Parses a TOML-formatted string into a `TTOMLTable` object. Raises `ETOMLParserException` on error.
 
 - `ParseTOMLFromFile`
 
 ```pascal
   function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
 ```
-Parses a TOML file into a `TTOMLTable` object.
-
-```pascal
-  function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
-  var
-    FileStream: TFileStream;
-    StringStream: TStringStream;
-  begin
-    FileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
-    try
-      StringStream := TStringStream.Create('');
-      try
-        StringStream.CopyFrom(FileStream, 0);
-        Result := ParseTOMLString(StringStream.DataString);
-      finally
-        StringStream.Free;
-      end;
-    finally
-      FileStream.Free;
-    end;
-  end;
-```
+Parses a TOML file into a `TTOMLTable` object. Reads the file content and then parses it. Raises `ETOMLParserException` on parsing errors or file system errors.
 
 ### Serialization Functions
 - `SerializeTOML`
@@ -468,32 +487,18 @@ Parses a TOML file into a `TTOMLTable` object.
 ```pascal
   function SerializeTOML(const AValue: TTOMLValue): string;
 ```
-Serializes a `TTOMLValue` into a TOML-formatted string.
-
-```pascal
-  function SerializeTOML(const AValue: TTOMLValue): string;
-  begin
-    Result := TOML.Serializer.SerializeTOML(AValue);
-  end;
-```
+Serializes a `TTOMLValue` (typically a `TTOMLTable` for a whole document) into a TOML-formatted string.
 
 - `SerializeTOMLToFile`
 
 ```pascal
   function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
 ```
-Serializes a `TTOMLValue` and saves it to a file.
-
-```pascal
-  function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
-  begin
-    Result := TOML.Serializer.SerializeTOMLToFile(AValue, AFileName);
-  end;
-```
+Serializes a `TTOMLValue` and saves it to the specified file. Returns `True` on success, `False` on failure (e.g., file I/O error).
 
 ## Testing
 
-The library includes a comprehensive test suite (55 items). 
+The library includes a comprehensive test suite (56 items). 
 
 To run the tests:
 
@@ -519,14 +524,14 @@ See [Test-Coverage-Overview.md](docs/Test-Coverage-Overview.md) for details.
 
 ```bash
 $ ./TestRunner.exe -a --format=plain
- Time:00.006 N:53 E:0 F:0 I:0
-  TTOMLTestCase Time:00.006 N:53 E:0 F:0 I:0
+ Time:00.008 N:56 E:0 F:0 I:0
+  TTOMLTestCase Time:00.008 N:56 E:0 F:0 I:0
     Test01_StringValue
     Test02_IntegerValue
     ...
     Test70_ComplexKeys
 
-Number of run tests: 53
+Number of run tests: 56
 Number of errors:    0
 Number of failures:  0
 
@@ -556,6 +561,7 @@ Check out the `examples` directory and the test cases, `tests/TestCaseTOML.pas`,
 5. Open a Pull Request
 
 Please ensure:
+
 - Code follows the project's style guidelines
 - All tests pass
 - New features include appropriate tests
@@ -570,5 +576,3 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 - TOML specification creators and maintainers
 - Free Pascal and Lazarus communities
 - All contributors to this project
-
-
