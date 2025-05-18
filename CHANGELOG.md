@@ -8,9 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changelog
 
-### v1.0.2 - Bug Fixes (2025-05-dd)
+### v1.0.2 - Bug Fixes (2025-05-18)
 
-- Fixed serialization of nested tables to use correct dotted key notation (e.g., `[parent.child]`) instead of separate table declarations.
+- Fixed `NeedsQuoting` function to properly conform to TOML specification for bare keys
+- Fixed serialization of nested tables to use correct dotted key notation (e.g., `[parent.child]`) instead of separate table declarations
+- Fixed proper distinction between hierarchical nested tables and literal dotted keys
+- Added dedicated tests for hierarchical nested tables (Test71) and literal dotted keys (Test72)
+- Updated documentation to clarify the difference between hierarchical paths and literal dotted keys
+- Added best practice recommendations from TOML spec about using bare keys when possible
 
 ### v1.0.1 - Bug Fixes (2025-03-24)
 
