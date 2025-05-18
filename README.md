@@ -6,12 +6,11 @@
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
 [![Version](https://img.shields.io/badge/Version-1.0.2-blueviolet.svg)]()
 
-
-A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, fully compliant with the TOML v1.0.0 specification.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, _almost_ fully compliant with the TOML v1.0.0 specification.
 
 > [!NOTE] 
 > 
-> Our extensive test suite (56 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+> Our extensive test suite (59 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
 
 ## Table of Contents
 
@@ -64,7 +63,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 - **Error Handling:** Detailed error messages and exception handling
 - **Serialization:** Convert Pascal objects to TOML and back
 - **Documentation:** Comprehensive examples and API documentation
-- **Test Suite:** Comprehensive test suite (56 items)
+- **Test Suite:** Comprehensive test suite (59 items)
 
 ## To Do / In Progress
 
@@ -498,7 +497,7 @@ Serializes a `TTOMLValue` and saves it to the specified file. Returns `True` on 
 
 ## Testing
 
-The library includes a comprehensive test suite (56 items). 
+The library includes a comprehensive test suite (59 items). 
 
 To run the tests:
 
