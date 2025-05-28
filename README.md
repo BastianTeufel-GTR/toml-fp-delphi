@@ -8,7 +8,7 @@
 
 A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal and Delphi, _almost_ fully compliant with the TOML v1.0.0 specification.
 
-> [!WARN]
+> [!WARNING]
 > The Delphi adjustments have only been tested with **reading** data from a TOML file
 > Writing will be tested and the code updated accordingly if some errors come up
 
