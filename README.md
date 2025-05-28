@@ -1,4 +1,4 @@
-# TOML Parser for Free Pascal
+# TOML Parser for Free Pascal / Delphi
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
@@ -6,11 +6,12 @@
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
 [![Version](https://img.shields.io/badge/Version-1.0.2-blueviolet.svg)]()
 
-A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal, _almost_ fully compliant with the TOML v1.0.0 specification.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal and Delphi, _almost_ fully compliant with the TOML v1.0.0 specification.
 
 > [!NOTE] 
 > 
 > Our extensive test suite (59 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+
 
 ## Table of Contents
 
@@ -53,7 +54,7 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 ## Overview
 
-TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
+TOML-FP provides a complete solution for working with TOML configuration files in Free Pascal / Delphi applications. Whether you need to read configuration files or generate them, TOML-FP offers an intuitive API with comprehensive type support and robust error handling.
 
 ## Features
 
@@ -84,7 +85,7 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 1. Clone the repository:
    
    ```bash
-   git clone https://github.com/ikelaiah/toml-fp.git
+   git clone https://github.com/BastianTeufel-GTR/toml-fp-delphi.git
    ```
 
 2. Add to your project:
