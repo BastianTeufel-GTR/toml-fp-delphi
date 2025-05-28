@@ -23,7 +23,12 @@
 }
 unit TOML;
 
+{$IF defined(FPC)}
 {$mode objfpc}{$H+}{$J-}
+{$ELSE}
+{$H+} // Enable Long Strings
+{$J-} // Disable Writeable Consts
+{$ENDIF}
 
 interface
 

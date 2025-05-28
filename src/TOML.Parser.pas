@@ -15,7 +15,12 @@
 }
 unit TOML.Parser;
 
+{$IF defined(FPC)}
 {$mode objfpc}{$H+}{$J-}
+{$ELSE}
+{$H+} // Enable Long Strings
+{$J-} // Disable Writeable Consts
+{$ENDIF}
 
 interface
 
@@ -53,9 +58,14 @@ type
     Column: Integer;        // Column number (1-based)
   end;
 
+{$IF Defined(FPC)}
   { Key-Value pair type for TOML tables }
   TTOMLKeyValuePair = specialize TPair<string, TTOMLValue>;
+{$ELSE}
+  { Key-Value pair type for TOML tables }
+  TTOMLKeyValuePair = TPair<string, TTOMLValue>;
 
+{$ENDIF}
   { Lexer class that performs lexical analysis of TOML input
     Converts raw TOML text into a sequence of tokens }
   TTOMLLexer = class

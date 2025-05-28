@@ -11,9 +11,14 @@
 }
 unit TOML.Types;
 
+{$IF defined(FPC)}
 {$mode objfpc}{$H+}{$J-}
 {$modeswitch typehelpers}
 {$modeswitch advancedrecords}
+{$ELSE}
+{$H+} // Enable Long Strings
+{$J-} // Disable Writeable Consts
+{$ENDIF}
 
 interface
 
@@ -52,12 +57,20 @@ type
 
   { Generic dictionary type for TOML tables
     Maps string keys to TOML values with case-sensitive comparison }
+{$IF defined(FPC)}
   TTOMLTableDict = specialize TDictionary<string, TTOMLValue>;
-  
+
   { Generic list type for TOML arrays
     Stores ordered list of TOML values }
   TTOMLValueList = specialize TList<TTOMLValue>;
+{$ELSE}
+  TTOMLTableDict = TDictionary<string, TTOMLValue>;
 
+  { Generic list type for TOML arrays
+    Stores ordered list of TOML values }
+  TTOMLValueList = TList<TTOMLValue>;
+
+{$ENDIF}
   { Base TOML value class - abstract base class for all TOML value types
     Provides common functionality and type conversion methods }
   TTOMLValue = class

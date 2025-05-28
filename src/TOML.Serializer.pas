@@ -20,7 +20,12 @@
 }
 unit TOML.Serializer;
 
+{$IF defined(FPC)}
 {$mode objfpc}{$H+}{$J-}
+{$ELSE}
+{$H+} // Enable Long Strings
+{$J-} // Disable Writeable Consts
+{$ENDIF}
 
 interface
 
@@ -28,8 +33,13 @@ uses
   SysUtils, Classes, TOML.Types, Generics.Collections;
 
 type
+{$IF Defined(FPC)}
   { Key-Value pair type for TOML tables }
   TTOMLKeyValuePair = specialize TPair<string, TTOMLValue>;
+{$ELSE}
+  { Key-Value pair type for TOML tables }
+  TTOMLKeyValuePair = TPair<string, TTOMLValue>;
+{$ENDIF}
 
   { TOML serializer class that converts TOML data to text format
     This class handles the conversion of TOML data structures into properly
