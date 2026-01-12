@@ -27,6 +27,7 @@ lib/
 *.~*
 *.bak
 *.tmp
+*.dcu
 
 # OS specific
 .DS_Store
