@@ -110,6 +110,15 @@ function ParseTOML(const ATOML: string): TTOMLTable;
   @note The caller is responsible for freeing the returned table and all its contents }
 function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
 
+{ String escaping functions }
+
+{ Escapes a string for use in TOML basic string format (double-quoted).
+  Use this when building TOML output manually to ensure backslashes, quotes,
+  and control characters are properly escaped per TOML v1.0.0 spec.
+  @param AValue The string to escape
+  @returns The escaped string (without surrounding quotes) }
+function EscapeTomlString(const AValue: string): string;
+
 { Serialization functions }
 
 { Serializes a TOML value to a string
@@ -175,6 +184,13 @@ end;
 function ParseTOMLFromFile(const AFileName: string): TTOMLTable;
 begin
   Result := TOML.Parser.ParseTOMLFile(AFileName);
+end;
+
+{ String escaping functions implementation }
+
+function EscapeTomlString(const AValue: string): string;
+begin
+  Result := TOML.Parser.EscapeTomlString(AValue);
 end;
 
 { Serialization functions implementation }

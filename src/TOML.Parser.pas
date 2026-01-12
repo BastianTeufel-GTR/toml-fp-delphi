@@ -239,6 +239,12 @@ function ParseTOMLString(const ATOML: string): TTOMLTable;
   @raises EFileStreamError if file cannot be opened }
 function ParseTOMLFile(const AFileName: string): TTOMLTable;
 
+{ Escapes a string for use in TOML basic string format (double-quoted).
+  Handles backslashes, quotes, and control characters per TOML v1.0.0 spec.
+  @param AValue The string to escape
+  @returns The escaped string (without surrounding quotes) }
+function EscapeTomlString(const AValue: string): string;
+
 implementation
 
 { Helper functions }
@@ -271,6 +277,34 @@ begin
     end;
   finally
     FileStream.Free;
+  end;
+end;
+
+function EscapeTomlString(const AValue: string): string;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := '';
+  for I := 1 to Length(AValue) do
+  begin
+    C := AValue[I];
+    case C of
+      '\': Result := Result + '\\';
+      '"': Result := Result + '\"';
+      #8:  Result := Result + '\b';   // Backspace
+      #9:  Result := Result + '\t';   // Tab
+      #10: Result := Result + '\n';   // Line feed
+      #12: Result := Result + '\f';   // Form feed
+      #13: Result := Result + '\r';   // Carriage return
+    else
+      // Control characters (U+0000 to U+001F except those handled above)
+      // should be escaped as \uXXXX per TOML spec
+      if (Ord(C) < 32) and not (C in [#8, #9, #10, #12, #13]) then
+        Result := Result + Format('\u%.4x', [Ord(C)])
+      else
+        Result := Result + C;
+    end;
   end;
 end;
 
@@ -361,6 +395,11 @@ var
   QuoteChar: Char;
   StartColumn: Integer;
   TempValue: string;
+  UnicodeEscapeChar: Char;
+  HexStr: string;
+  HexLen: Integer;
+  CodePoint: UInt32;
+  HexIndex: Integer;
 begin
   IsMultiline := False;
   IsLiteral := False;
@@ -417,8 +456,51 @@ begin
           '''': TempValue := TempValue + '''';
           'u', 'U': begin
             // Handle Unicode escapes
-            // TODO: Implement Unicode escape sequences
-            raise ETOMLParserException.Create('Unicode escapes not yet implemented');
+            // \uXXXX for 4 hex digits (U+0000 to U+FFFF)
+            // \UXXXXXXXX for 8 hex digits (U+00000000 to U+10FFFF)
+            UnicodeEscapeChar := Advance;  // Consume 'u' or 'U'
+
+            // Determine how many hex digits to read
+            if UnicodeEscapeChar = 'u' then
+              HexLen := 4
+            else
+              HexLen := 8;
+
+            // Read hex digits
+            HexStr := '';
+            for HexIndex := 1 to HexLen do
+            begin
+              if IsAtEnd then
+                raise ETOMLParserException.CreateFmt('Incomplete Unicode escape at line %d, column %d',
+                  [FLine, FColumn]);
+              if not (Peek in ['0'..'9', 'A'..'F', 'a'..'f']) then
+                raise ETOMLParserException.CreateFmt('Invalid hex digit in Unicode escape at line %d, column %d',
+                  [FLine, FColumn]);
+              HexStr := HexStr + Advance;
+            end;
+
+            // Convert hex to code point
+            CodePoint := StrToInt('$' + HexStr);
+
+            // Validate code point
+            if CodePoint > $10FFFF then
+              raise ETOMLParserException.CreateFmt('Unicode code point out of range at line %d, column %d',
+                [FLine, FColumn]);
+
+            // Convert code point to string
+            if CodePoint <= $FFFF then
+              // BMP character - single WideChar
+              TempValue := TempValue + Char(CodePoint)
+            else
+            begin
+              // Supplementary character - need surrogate pair
+              CodePoint := CodePoint - $10000;
+              TempValue := TempValue + Char($D800 + (CodePoint shr 10));
+              TempValue := TempValue + Char($DC00 + (CodePoint and $3FF));
+            end;
+
+            // Skip the final Advance call - we've already consumed all characters
+            Continue;
           end;
           else raise ETOMLParserException.Create('Invalid escape sequence');
         end;
