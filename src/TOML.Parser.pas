@@ -268,7 +268,8 @@ var
 begin
   FileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
   try
-    StringStream := TStringStream.Create('');
+    // TOML files are UTF-8 by specification
+    StringStream := TStringStream.Create('', TEncoding.UTF8);
     try
       StringStream.CopyFrom(FileStream, 0);
       Result := ParseTOMLString(StringStream.DataString);
@@ -1402,6 +1403,16 @@ begin
               begin
                 Value := TTOMLTable.Create;
                 CurrentTable.Add(Key, Value);
+              end;
+              // Handle intermediate keys that are arrays (from [[array]] definitions)
+              // Navigate to the last table in the array per TOML spec
+              if Value is TTOMLArray then
+              begin
+                ArrayValue := TTOMLArray(Value);
+                if ArrayValue.Count = 0 then
+                  raise ETOMLParserException.CreateFmt('Array %s is empty at line %d, column %d',
+                    [Key, FCurrentToken.Line, FCurrentToken.Column]);
+                Value := ArrayValue.Items[ArrayValue.Count - 1];
               end;
               if not (Value is TTOMLTable) then
                 raise ETOMLParserException.CreateFmt('Key %s is not a table at line %d, column %d',
