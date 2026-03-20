@@ -93,6 +93,11 @@ type
       @param AKey The key to check
       @returns True if key needs quoting, False otherwise }
     function NeedsQuoting(const AKey: string): Boolean;
+
+    { Builds a full dotted path from FCurrentPath components plus an optional key.
+      @param AKey Optional key to append. When empty, builds from FCurrentPath alone.
+      @returns The full dotted path with proper quoting }
+    function BuildPath(const AKey: string = ''): string;
   public
     { Creates a new TOML serializer instance }
     constructor Create;
@@ -217,6 +222,33 @@ begin
   Result := False;
 end;
 
+function TTOMLSerializer.BuildPath(const AKey: string = ''): string;
+var
+  i: Integer;
+  Component: string;
+begin
+  Result := '';
+  for i := 0 to FCurrentPath.Count - 1 do
+  begin
+    if i > 0 then
+      Result := Result + '.';
+    Component := FCurrentPath[i];
+    if NeedsQuoting(Component) then
+      Result := Result + '"' + Component + '"'
+    else
+      Result := Result + Component;
+  end;
+  if AKey <> '' then
+  begin
+    if Result <> '' then
+      Result := Result + '.';
+    if NeedsQuoting(AKey) then
+      Result := Result + '"' + AKey + '"'
+    else
+      Result := Result + AKey;
+  end;
+end;
+
 procedure TTOMLSerializer.WriteKey(const AKey: string);
 begin
   if NeedsQuoting(AKey) then
@@ -333,9 +365,6 @@ var
   i: Integer;
   ArrayValue: TTOMLArray;
   AllTables: Boolean;
-  TablePath: string; 
-  PathComponents: TStringList;
-  Component: string;
 begin
   if AInline then
   begin
@@ -394,15 +423,14 @@ begin
         
         if AllTables then
         begin
-          // Write as array of tables [[key]]
           for i := 0 to ArrayValue.Count - 1 do
           begin
             if i > 0 then
               WriteLine;
-            WriteLine('[[' + Pair.Key + ']]');
-            
-            // Save current indentation level
+            WriteLine('[[' + BuildPath(Pair.Key) + ']]');
+            FCurrentPath.Add(Pair.Key);
             WriteTable(ArrayValue.GetItem(i).AsTable);
+            FCurrentPath.Delete(FCurrentPath.Count - 1);
           end;
           continue;
         end;
@@ -412,48 +440,13 @@ begin
       if Pair.Value.ValueType = tvtTable then
       begin
         SubTable := Pair.Value.AsTable;
-        
         WriteLine;
-        
-        // Build path components properly
-        PathComponents := TStringList.Create;
-        try
-          // Add all current path components with proper quoting if needed
-          for i := 0 to FCurrentPath.Count - 1 do
-          begin
-            Component := FCurrentPath[i];
-            if NeedsQuoting(Component) then
-              PathComponents.Add('"' + Component + '"')
-            else
-              PathComponents.Add(Component);
-          end;
-          
-          // Add the current key with proper quoting if needed
-          if NeedsQuoting(Pair.Key) then
-            PathComponents.Add('"' + Pair.Key + '"')
-          else
-            PathComponents.Add(Pair.Key);
-          
-          // Join with dots to create the full path
-          TablePath := '';
-          for i := 0 to PathComponents.Count - 1 do
-          begin
-            if i > 0 then
-              TablePath := TablePath + '.';
-            TablePath := TablePath + PathComponents[i];
-          end;
-          
-          WriteLine('[' + TablePath + ']');
-          
-          // Process the subtable recursively if it has items
-          if SubTable.Items.Count > 0 then
-          begin
-            FCurrentPath.Add(Pair.Key);
-            WriteTable(SubTable);
-            FCurrentPath.Delete(FCurrentPath.Count - 1);
-          end;
-        finally
-          PathComponents.Free;
+        WriteLine('[' + BuildPath(Pair.Key) + ']');
+        if SubTable.Items.Count > 0 then
+        begin
+          FCurrentPath.Add(Pair.Key);
+          WriteTable(SubTable);
+          FCurrentPath.Delete(FCurrentPath.Count - 1);
         end;
       end;
     end;
