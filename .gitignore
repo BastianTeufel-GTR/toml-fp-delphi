@@ -18,6 +18,16 @@ lib/
 # IDE specific
 .vscode/
 .idea/
+*.identcache
+*.dsk
+*.local
+*.delphilsp.json
+
+# Delphi build output
+Win32/
+Win64/
+tests/delphi/Win32/
+tests/delphi/Win64/
 
 # Debug files
 *.dbg

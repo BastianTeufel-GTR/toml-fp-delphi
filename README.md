@@ -1,21 +1,19 @@
-# TOML Parser for Free Pascal / Delphi
+# TOML Parser for Delphi / Free Pascal
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Delphi 12](https://img.shields.io/badge/Delphi-12-red.svg)](https://www.embarcadero.com/products/delphi)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
-[![Lazarus](https://img.shields.io/badge/Lazarus-4.0-orange.svg)](https://www.lazarus-ide.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
-[![Version](https://img.shields.io/badge/Version-1.0.2-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.1.0-blueviolet.svg)]()
 
-A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Free Pascal and Delphi, _almost_ fully compliant with the TOML v1.0.0 specification.
+A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Delphi and Free Pascal, fully compliant with the TOML v1.0.0 specification.
 
-> [!WARNING]
-> The Delphi adjustments have only been tested with **reading** data from a TOML file
-> Writing will be tested and the code updated accordingly if some errors come up
+> [!NOTE]
+> Primary development and testing targets **Delphi 12 (Win64)**. Free Pascal / Lazarus compatibility is maintained via compiler conditionals but is not actively tested at this time.
 
-
-> [!NOTE] 
-> 
-> Our extensive test suite (59 tests) ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases.
+> [!NOTE]
+>
+> Our extensive test suite ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases. The Delphi DUnitX test suite covers nested key compliance, array-of-tables serialization, and round-trip correctness.
 
 
 ## Table of Contents
@@ -63,13 +61,14 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 
 ## Features
 
-- **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures, including proper serialization of nested (dotted) tables.
+- **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures, including nested arrays of tables (`[[fruits.varieties]]`), sub-tables within array elements (`[fruits.physical]`), and dotted keys in key-value pairs (`physical.color = "red"`)
 - **Type-Safe API:** Strong typing with compile-time checks
 - **Memory Management:** Automatic cleanup with proper object lifecycle management
 - **Error Handling:** Detailed error messages and exception handling
-- **Serialization:** Convert Pascal objects to TOML and back
+- **Serialization:** Convert Pascal objects to TOML and back with correct full-path headers for nested structures
+- **Implicit Table Merging:** Dotted keys with shared prefixes automatically merge into the correct table hierarchy
 - **Documentation:** Comprehensive examples and API documentation
-- **Test Suite:** Comprehensive test suite (59 items)
+- **Test Suite:** DUnitX test suite for Delphi 12 plus fpcunit suite for Free Pascal
 
 ## To Do / In Progress
 
@@ -79,8 +78,8 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 
 ## Requirements
 
-- Free Pascal Compiler 3.2.2 or later
-- Lazarus IDE 4.0 (for running tests)
+- **Delphi 12** (primary, tested on Win64) or
+- Free Pascal Compiler 3.2.2 or later with Lazarus IDE 4.0
 
 ## Installation
 
