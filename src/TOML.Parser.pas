@@ -1334,22 +1334,41 @@ end;
 
 function TTOMLParser.ParseKeyValue: TTOMLKeyValuePair;
 var
-  Key: string;
+  KeyParts: TStringList;
   Value: TTOMLValue;
+  WrapperTable: TTOMLTable;
+  i: Integer;
 begin
-  Key := ParseKey;
-  Value := nil;
-  
+  KeyParts := TStringList.Create;
   try
-    while Match(ttDot) do
-      Key := Key + '.' + ParseKey;
-      
-    Expect(ttEqual);
-    Value := ParseValue;
-    Result := TTOMLKeyValuePair.Create(Key, Value);
-  except
-    Value.Free;
-    raise;
+    KeyParts.Add(ParseKey);
+    Value := nil;
+
+    try
+      while Match(ttDot) do
+        KeyParts.Add(ParseKey);
+
+      Expect(ttEqual);
+      Value := ParseValue;
+
+      // Wrap value in nested tables from innermost to outermost
+      // For parts ["a", "b", "c"] with value V:
+      //   i=1 (from count-2 downto 1): wrap in Table{"c" -> V}, then Table{"b" -> ...}
+      // Result key = "a", Result value = outermost wrapper
+      for i := KeyParts.Count - 1 downto 1 do
+      begin
+        WrapperTable := TTOMLTable.Create;
+        WrapperTable.Add(KeyParts[i], Value);
+        Value := WrapperTable;
+      end;
+
+      Result := TTOMLKeyValuePair.Create(KeyParts[0], Value);
+    except
+      Value.Free;
+      raise;
+    end;
+  finally
+    KeyParts.Free;
   end;
 end;
 
