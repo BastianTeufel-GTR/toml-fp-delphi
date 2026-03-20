@@ -23,7 +23,7 @@ unit TOML.Types;
 interface
 
 uses
-  SysUtils, Generics.Collections;
+  SysUtils, Classes, Generics.Collections;
 
 type
   { TOML value types - represents all possible TOML data types
@@ -212,11 +212,12 @@ type
     constructor Create;
     destructor Destroy; override;
     
-    { Adds a key-value pair to the table
+    { Adds a key-value pair to the table.
+      When AKey already exists and both the existing value and AValue are TTOMLTable,
+      the entries from AValue are merged into the existing table and AValue is freed.
       @param AKey The key for the value
-      @param AValue The value to add
-      @raises ETOMLParserException if the key already exists
-      @note Takes ownership of the value }
+      @param AValue The value to add. Ownership is transferred; caller must not free it.
+      @raises ETOMLParserException if AKey already exists and at least one value is not a table }
     procedure Add(const AKey: string; AValue: TTOMLValue);
     
     { Tries to get a value by key
@@ -417,15 +418,53 @@ end;
 procedure TTOMLTable.Add(const AKey: string; AValue: TTOMLValue);
 var
   ExistingValue: TTOMLValue;
+  MergeSource: TTOMLTable;
+  MergeKeys: TStringList;
+  MergeKey: string;
+  MergeValue: TTOMLValue;
+  i: Integer;
 begin
   if FItems = nil then
     FItems := TTOMLTableDict.Create;
-    
-  // Check for duplicate keys
+
   if FItems.TryGetValue(AKey, ExistingValue) then
-    raise ETOMLParserException.CreateFmt('Duplicate key "%s" found', [AKey]);
-    
-  FItems.AddOrSetValue(AKey, AValue);
+  begin
+    // Both existing and new are tables: merge new entries into existing
+    if (ExistingValue is TTOMLTable) and (AValue is TTOMLTable) then
+    begin
+      MergeSource := TTOMLTable(AValue);
+      // Collect keys first to avoid iterator invalidation
+      MergeKeys := TStringList.Create;
+      try
+        for MergeKey in MergeSource.Items.Keys do
+          MergeKeys.Add(MergeKey);
+        // Transfer each entry: detach from source before adding to target
+        // This prevents double-free if a later Add raises on duplicate key
+        for i := 0 to MergeKeys.Count - 1 do
+        begin
+          MergeKey := MergeKeys[i];
+          MergeValue := MergeSource.Items[MergeKey];
+          // Detach from source BEFORE adding to target
+          MergeSource.Items.Remove(MergeKey);
+          try
+            TTOMLTable(ExistingValue).Add(MergeKey, MergeValue);
+          except
+            // Re-attach to source so caller's except block can free it
+            MergeSource.Items.AddOrSetValue(MergeKey, MergeValue);
+            raise;
+          end;
+        end;
+      finally
+        MergeKeys.Free;
+      end;
+      // All entries transferred — free the now-empty wrapper
+      MergeSource.Free;
+    end
+    else
+      raise ETOMLParserException.CreateFmt('Duplicate key "%s" found', [AKey]);
+  end
+  else
+    FItems.AddOrSetValue(AKey, AValue);
 end;
 
 function TTOMLTable.TryGetValue(const AKey: string; out AValue: TTOMLValue): Boolean;
