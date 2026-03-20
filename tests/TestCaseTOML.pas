@@ -82,6 +82,16 @@ type
     procedure Test70_ComplexKeys;
     procedure Test71_HierarchicalNestedTable;
     procedure Test72_LiteralDottedKeyTable;
+    { Nested key compliance tests }
+    procedure Test73_DottedKeyCreatesNestedTables;
+    procedure Test74_DottedKeyMerging;
+    procedure Test75_DuplicateDottedKeyError;
+    procedure Test76_DottedKeysInInlineTables;
+    procedure Test77_SerializeNestedArrayOfTables;
+    procedure Test78_SerializeSubTablesUnderArrayElements;
+    procedure Test79_SerializeDeepNesting;
+    procedure Test80_RoundTripCanonicalFruitsExample;
+    procedure Test81_RoundTripDeepNestedArrayChains;
   end;
 
 implementation
@@ -1202,12 +1212,13 @@ var
   Data: TTOMLTable;
   Value: TTOMLValue;
 begin
-  // Test 1: Valid Dotted Key
+  // Test 1: Dotted key creates nested tables
   try
     Data := ParseTOML('valid.key = "value"');
     try
-      AssertTrue('valid.key exists', Data.TryGetValue('valid.key', Value));
-      AssertEquals('valid.key value', 'value', Value.AsString);
+      AssertTrue('valid table exists', Data.TryGetValue('valid', Value));
+      AssertTrue('key exists in valid table', Value.AsTable.TryGetValue('key', Value));
+      AssertEquals('key value', 'value', Value.AsString);
     finally
       Data.Free;
     end;
@@ -1216,13 +1227,14 @@ begin
       Fail('Valid dotted key should be allowed');
   end;
   
-  // Test 2: Quoted Key with Dots
+  // Test 2: Quoted key with dots creates nested table with literal dotted key
   try
     Data := ParseTOML('valid."dotted.key" = "value"');
     try
-      // Corrected assertion to look for 'valid.dotted.key'
-      AssertTrue('"valid.dotted.key" exists', Data.TryGetValue('valid.dotted.key', Value));
-      AssertEquals('"valid.dotted.key" value', 'value', Value.AsString);
+      AssertTrue('valid table exists', Data.TryGetValue('valid', Value));
+      AssertTrue('"dotted.key" exists in valid table',
+        Value.AsTable.TryGetValue('dotted.key', Value));
+      AssertEquals('"dotted.key" value', 'value', Value.AsString);
     finally
       Data.Free;
     end;
@@ -1442,6 +1454,409 @@ begin
       AssertTrue('tatter.man has name field', 
         SubValue.AsTable.TryGetValue('name', Value));
       AssertEquals('Name is Spot', 'Spot', Value.AsString);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test73_DottedKeyCreatesNestedTables;
+var
+  Doc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  Doc := ParseTOML('physical.color = "red"');
+  try
+    AssertTrue('physical table exists', Doc.TryGetValue('physical', Value));
+    AssertEquals('physical is a table', Ord(tvtTable), Ord(Value.ValueType));
+    AssertTrue('color exists', Value.AsTable.TryGetValue('color', Value));
+    AssertEquals('color value', 'red', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+
+  // Three-part dotted key
+  Doc := ParseTOML('a.b.c = 42');
+  try
+    AssertTrue('a exists', Doc.TryGetValue('a', Value));
+    AssertTrue('b exists', Value.AsTable.TryGetValue('b', Value));
+    AssertTrue('c exists', Value.AsTable.TryGetValue('c', Value));
+    AssertEquals('c value', 42, Value.AsInteger);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test74_DottedKeyMerging;
+var
+  Doc: TTOMLTable;
+  Value, PhysicalValue: TTOMLValue;
+begin
+  Doc := ParseTOML(
+    'physical.color = "red"' + LineEnding +
+    'physical.shape = "round"'
+  );
+  try
+    AssertTrue('physical exists', Doc.TryGetValue('physical', PhysicalValue));
+    AssertTrue('color exists', PhysicalValue.AsTable.TryGetValue('color', Value));
+    AssertEquals('color', 'red', Value.AsString);
+    AssertTrue('shape exists', PhysicalValue.AsTable.TryGetValue('shape', Value));
+    AssertEquals('shape', 'round', Value.AsString);
+  finally
+    Doc.Free;
+  end;
+
+  // Three-level merge
+  Doc := ParseTOML(
+    'a.b.x = 1' + LineEnding +
+    'a.b.y = 2' + LineEnding +
+    'a.c = 3'
+  );
+  try
+    AssertTrue('a exists', Doc.TryGetValue('a', Value));
+    AssertTrue('b exists', Value.AsTable.TryGetValue('b', Value));
+    AssertTrue('x exists', Value.AsTable.TryGetValue('x', Value));
+    AssertEquals('x value', 1, Value.AsInteger);
+    // Re-navigate for y
+    Doc.TryGetValue('a', Value);
+    Value.AsTable.TryGetValue('b', Value);
+    AssertTrue('y exists', Value.AsTable.TryGetValue('y', Value));
+    AssertEquals('y value', 2, Value.AsInteger);
+    // Check c
+    Doc.TryGetValue('a', Value);
+    AssertTrue('c exists', Value.AsTable.TryGetValue('c', Value));
+    AssertEquals('c value', 3, Value.AsInteger);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test75_DuplicateDottedKeyError;
+var
+  Doc: TTOMLTable;
+begin
+  try
+    Doc := ParseTOML(
+      'physical.color = "red"' + LineEnding +
+      'physical.color = "blue"'
+    );
+    Doc.Free;
+    Fail('Should have raised duplicate key error');
+  except
+    on E: ETOMLParserException do
+      ; // Expected
+  end;
+end;
+
+procedure TTOMLTestCase.Test76_DottedKeysInInlineTables;
+var
+  Doc: TTOMLTable;
+  Value, PointValue, XValue: TTOMLValue;
+begin
+  Doc := ParseTOML('point = { x.y = 1, x.z = 2 }');
+  try
+    AssertTrue('point exists', Doc.TryGetValue('point', PointValue));
+    AssertTrue('x exists', PointValue.AsTable.TryGetValue('x', XValue));
+    AssertTrue('y exists', XValue.AsTable.TryGetValue('y', Value));
+    AssertEquals('y value', 1, Value.AsInteger);
+    AssertTrue('z exists', XValue.AsTable.TryGetValue('z', Value));
+    AssertEquals('z value', 2, Value.AsInteger);
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test77_SerializeNestedArrayOfTables;
+var
+  Doc: TTOMLTable;
+  Fruits, Varieties: TTOMLArray;
+  FruitTable, VarietyTable: TTOMLTable;
+  TOML: string;
+  ParsedDoc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  Doc := TTOMLTable.Create;
+  try
+    Fruits := TTOMLArray.Create;
+
+    // First fruit with varieties
+    FruitTable := TTOMLTable.Create;
+    FruitTable.Add('name', TTOMLString.Create('apple'));
+    Varieties := TTOMLArray.Create;
+    VarietyTable := TTOMLTable.Create;
+    VarietyTable.Add('name', TTOMLString.Create('red delicious'));
+    Varieties.Add(VarietyTable);
+    VarietyTable := TTOMLTable.Create;
+    VarietyTable.Add('name', TTOMLString.Create('granny smith'));
+    Varieties.Add(VarietyTable);
+    FruitTable.Add('varieties', Varieties);
+    Fruits.Add(FruitTable);
+
+    // Second fruit with one variety
+    FruitTable := TTOMLTable.Create;
+    FruitTable.Add('name', TTOMLString.Create('banana'));
+    Varieties := TTOMLArray.Create;
+    VarietyTable := TTOMLTable.Create;
+    VarietyTable.Add('name', TTOMLString.Create('plantain'));
+    Varieties.Add(VarietyTable);
+    FruitTable.Add('varieties', Varieties);
+    Fruits.Add(FruitTable);
+
+    Doc.Add('fruits', Fruits);
+
+    TOML := SerializeTOML(Doc);
+
+    // Verify correct headers
+    AssertTrue('Has [[fruits]]', Pos('[[fruits]]', TOML) > 0);
+    AssertTrue('Has [[fruits.varieties]]', Pos('[[fruits.varieties]]', TOML) > 0);
+
+    // Round-trip verify
+    ParsedDoc := ParseTOML(TOML);
+    try
+      AssertTrue('fruits exists', ParsedDoc.TryGetValue('fruits', Value));
+      AssertEquals('fruits count', 2, Value.AsArray.Count);
+      // First fruit varieties
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('varieties', Value);
+      AssertEquals('first fruit varieties count', 2, Value.AsArray.Count);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test78_SerializeSubTablesUnderArrayElements;
+var
+  Doc: TTOMLTable;
+  Fruits: TTOMLArray;
+  FruitTable, PhysicalTable: TTOMLTable;
+  TOML: string;
+  ParsedDoc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  Doc := TTOMLTable.Create;
+  try
+    Fruits := TTOMLArray.Create;
+
+    FruitTable := TTOMLTable.Create;
+    FruitTable.Add('name', TTOMLString.Create('apple'));
+    PhysicalTable := TTOMLTable.Create;
+    PhysicalTable.Add('color', TTOMLString.Create('red'));
+    PhysicalTable.Add('shape', TTOMLString.Create('round'));
+    FruitTable.Add('physical', PhysicalTable);
+    Fruits.Add(FruitTable);
+
+    Doc.Add('fruits', Fruits);
+
+    TOML := SerializeTOML(Doc);
+
+    AssertTrue('Has [[fruits]]', Pos('[[fruits]]', TOML) > 0);
+    AssertTrue('Has [fruits.physical]', Pos('[fruits.physical]', TOML) > 0);
+    // Make sure it's not [[fruits.physical]]
+    AssertEquals('No double-bracket for sub-table', 0, Pos('[[fruits.physical]]', TOML));
+
+    // Round-trip
+    ParsedDoc := ParseTOML(TOML);
+    try
+      ParsedDoc.TryGetValue('fruits', Value);
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('physical', Value);
+      AssertEquals('color', 'red',
+        Value.AsTable.Items['color'].AsString);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test79_SerializeDeepNesting;
+var
+  Doc, CTable: TTOMLTable;
+  AArray, BArray, CArray: TTOMLArray;
+  ATable, BTable: TTOMLTable;
+  TOML: string;
+  ParsedDoc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  // Build: a -> [Table{val=1, b -> [Table{val=10, c -> [Table{val=100}]}]}]
+  Doc := TTOMLTable.Create;
+  try
+    AArray := TTOMLArray.Create;
+    ATable := TTOMLTable.Create;
+    ATable.Add('val', TTOMLInteger.Create(1));
+
+    BArray := TTOMLArray.Create;
+    BTable := TTOMLTable.Create;
+    BTable.Add('val', TTOMLInteger.Create(10));
+
+    CArray := TTOMLArray.Create;
+    CTable := TTOMLTable.Create;
+    CTable.Add('val', TTOMLInteger.Create(100));
+    CArray.Add(CTable);
+
+    BTable.Add('c', CArray);
+    BArray.Add(BTable);
+    ATable.Add('b', BArray);
+    AArray.Add(ATable);
+    Doc.Add('a', AArray);
+
+    TOML := SerializeTOML(Doc);
+
+    AssertTrue('Has [[a]]', Pos('[[a]]', TOML) > 0);
+    AssertTrue('Has [[a.b]]', Pos('[[a.b]]', TOML) > 0);
+    AssertTrue('Has [[a.b.c]]', Pos('[[a.b.c]]', TOML) > 0);
+
+    // Round-trip
+    ParsedDoc := ParseTOML(TOML);
+    try
+      ParsedDoc.TryGetValue('a', Value);
+      AssertEquals('a count', 1, Value.AsArray.Count);
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('b', Value);
+      AssertEquals('b count', 1, Value.AsArray.Count);
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('c', Value);
+      AssertEquals('c count', 1, Value.AsArray.Count);
+      AssertEquals('c val', 100,
+        Value.AsArray.GetItem(0).AsTable.Items['val'].AsInteger);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test80_RoundTripCanonicalFruitsExample;
+var
+  TOML, Serialized: string;
+  Doc, ParsedDoc: TTOMLTable;
+  Value, SubValue: TTOMLValue;
+  Fruits: TTOMLArray;
+begin
+  // The canonical example from the TOML v1.0.0 spec
+  TOML := '[[fruits]]' + LineEnding +
+          'name = "apple"' + LineEnding +
+          '' + LineEnding +
+          '[fruits.physical]' + LineEnding +
+          'color = "red"' + LineEnding +
+          'shape = "round"' + LineEnding +
+          '' + LineEnding +
+          '[[fruits.varieties]]' + LineEnding +
+          'name = "red delicious"' + LineEnding +
+          '' + LineEnding +
+          '[[fruits.varieties]]' + LineEnding +
+          'name = "granny smith"' + LineEnding +
+          '' + LineEnding +
+          '[[fruits]]' + LineEnding +
+          'name = "banana"' + LineEnding +
+          '' + LineEnding +
+          '[[fruits.varieties]]' + LineEnding +
+          'name = "plantain"';
+
+  // Parse
+  Doc := ParseTOML(TOML);
+  try
+    // Verify structure
+    AssertTrue('fruits exists', Doc.TryGetValue('fruits', Value));
+    Fruits := Value.AsArray;
+    AssertEquals('fruits count', 2, Fruits.Count);
+
+    // First fruit
+    AssertTrue('apple name', Fruits.GetItem(0).AsTable.TryGetValue('name', Value));
+    AssertEquals('apple', Value.AsString);
+    AssertTrue('physical', Fruits.GetItem(0).AsTable.TryGetValue('physical', Value));
+    AssertTrue('color', Value.AsTable.TryGetValue('color', SubValue));
+    AssertEquals('red', SubValue.AsString);
+    AssertTrue('varieties', Fruits.GetItem(0).AsTable.TryGetValue('varieties', Value));
+    AssertEquals('apple varieties', 2, Value.AsArray.Count);
+
+    // Second fruit
+    AssertTrue('banana name', Fruits.GetItem(1).AsTable.TryGetValue('name', Value));
+    AssertEquals('banana', Value.AsString);
+    AssertTrue('banana varieties', Fruits.GetItem(1).AsTable.TryGetValue('varieties', Value));
+    AssertEquals('banana variety count', 1, Value.AsArray.Count);
+
+    // Serialize
+    Serialized := SerializeTOML(Doc);
+
+    // Verify serialized output contains correct headers
+    AssertTrue('Serialized has [[fruits]]', Pos('[[fruits]]', Serialized) > 0);
+    AssertTrue('Serialized has [fruits.physical]', Pos('[fruits.physical]', Serialized) > 0);
+    AssertTrue('Serialized has [[fruits.varieties]]', Pos('[[fruits.varieties]]', Serialized) > 0);
+
+    // Round-trip: parse the serialized output
+    ParsedDoc := ParseTOML(Serialized);
+    try
+      AssertTrue('RT fruits', ParsedDoc.TryGetValue('fruits', Value));
+      AssertEquals('RT fruits count', 2, Value.AsArray.Count);
+      // Verify first fruit still has physical and varieties
+      AssertTrue('RT physical',
+        Value.AsArray.GetItem(0).AsTable.TryGetValue('physical', SubValue));
+      AssertTrue('RT varieties',
+        Value.AsArray.GetItem(0).AsTable.TryGetValue('varieties', SubValue));
+      AssertEquals('RT varieties count', 2, SubValue.AsArray.Count);
+    finally
+      ParsedDoc.Free;
+    end;
+  finally
+    Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test81_RoundTripDeepNestedArrayChains;
+var
+  TOML, Serialized: string;
+  Doc, ParsedDoc: TTOMLTable;
+  Value: TTOMLValue;
+begin
+  TOML := '[[a]]' + LineEnding +
+          'val = 1' + LineEnding +
+          '' + LineEnding +
+          '[[a.b]]' + LineEnding +
+          'val = 10' + LineEnding +
+          '' + LineEnding +
+          '[[a.b.c]]' + LineEnding +
+          'val = 100' + LineEnding +
+          '' + LineEnding +
+          '[[a.b.c]]' + LineEnding +
+          'val = 101' + LineEnding +
+          '' + LineEnding +
+          '[[a]]' + LineEnding +
+          'val = 2' + LineEnding +
+          '' + LineEnding +
+          '[[a.b]]' + LineEnding +
+          'val = 30';
+
+  Doc := ParseTOML(TOML);
+  try
+    // Verify parsed structure
+    AssertTrue('a exists', Doc.TryGetValue('a', Value));
+    AssertEquals('a count', 2, Value.AsArray.Count);
+
+    // a[0].b[0].c has 2 entries
+    Value.AsArray.GetItem(0).AsTable.TryGetValue('b', Value);
+    AssertEquals('a[0].b count', 1, Value.AsArray.Count);
+    Value.AsArray.GetItem(0).AsTable.TryGetValue('c', Value);
+    AssertEquals('a[0].b[0].c count', 2, Value.AsArray.Count);
+
+    // Serialize and round-trip
+    Serialized := SerializeTOML(Doc);
+
+    AssertTrue('Has [[a]]', Pos('[[a]]', Serialized) > 0);
+    AssertTrue('Has [[a.b]]', Pos('[[a.b]]', Serialized) > 0);
+    AssertTrue('Has [[a.b.c]]', Pos('[[a.b.c]]', Serialized) > 0);
+
+    ParsedDoc := ParseTOML(Serialized);
+    try
+      AssertTrue('RT a exists', ParsedDoc.TryGetValue('a', Value));
+      AssertEquals('RT a count', 2, Value.AsArray.Count);
+      // Verify deep nesting preserved
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('b', Value);
+      Value.AsArray.GetItem(0).AsTable.TryGetValue('c', Value);
+      AssertEquals('RT c count', 2, Value.AsArray.Count);
     finally
       ParsedDoc.Free;
     end;
