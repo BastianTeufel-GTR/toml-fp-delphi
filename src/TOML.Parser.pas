@@ -56,6 +56,7 @@ type
     Value: string;          // String value of the token
     Line: Integer;          // Line number (1-based)
     Column: Integer;        // Column number (1-based)
+    StringStyle: TTOMLStringStyle; // String style (basic/literal/multiline)
   end;
 
 {$IF Defined(FPC)}
@@ -521,6 +522,15 @@ begin
         TempValue := TempValue + Advance;
     end;
     
+    if IsMultiline and IsLiteral then
+      Result.StringStyle := tssMultilineLiteral
+    else if IsMultiline then
+      Result.StringStyle := tssMultilineBasic
+    else if IsLiteral then
+      Result.StringStyle := tssLiteral
+    else
+      Result.StringStyle := tssBasic;
+
     Result.TokenType := ttString;
     Result.Value := TempValue;
     Result.Line := FLine;
@@ -1043,7 +1053,7 @@ end;
 
 function TTOMLParser.ParseString: TTOMLString;
 begin
-  Result := TTOMLString.Create(FCurrentToken.Value);
+  Result := TTOMLString.Create(FCurrentToken.Value, FCurrentToken.StringStyle);
   Advance;
 end;
 
