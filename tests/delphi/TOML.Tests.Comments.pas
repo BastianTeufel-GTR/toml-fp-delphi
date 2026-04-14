@@ -94,7 +94,7 @@ begin
   // Input: one comment line followed by a key-value pair
   doc := ParseTOML('# this is a comment' + #10 + 'key = "value"' + #10);
   try
-    Assert.AreEqual(2, doc.Body.Count, 'Body should contain exactly 2 entries');
+    Assert.AreEqual(2, Integer(doc.Body.Count), 'Body should contain exactly 2 entries');
 
     entry := doc.Body[0];
     Assert.AreEqual('', entry.Key, 'Comment entry should have empty key');
@@ -124,7 +124,7 @@ begin
 
   doc := ParseTOML(toml);
   try
-    Assert.AreEqual(4, doc.Body.Count, 'Body should contain 4 entries');
+    Assert.AreEqual(4, Integer(doc.Body.Count), 'Body should contain 4 entries');
 
     Assert.IsTrue(doc.Body[0].Value is TTOMLComment, 'Entry 0 should be TTOMLComment');
     Assert.AreEqual('first', TTOMLComment(doc.Body[0].Value).Text,
@@ -240,7 +240,7 @@ begin
     reparsed := ParseTOML(serialized);
     try
       // Expect 2 comment entries + 1 key entry in the root body
-      Assert.AreEqual(3, reparsed.Body.Count,
+      Assert.AreEqual(3, Integer(reparsed.Body.Count),
         'Re-parsed body should have 3 entries (2 comments + 1 key)');
 
       Assert.IsTrue(reparsed.Body[0].Value is TTOMLComment,

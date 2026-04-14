@@ -412,9 +412,8 @@ begin
     IsMultiline := True;
     Advance; // Skip second quote
     Advance; // Skip third quote
-    if not IsLiteral then
-      // Skip first newline in multiline basic strings
-      if (Peek = #10) or ((Peek = #13) and (PeekNext = #10)) then
+    // Skip first newline in multiline strings (both basic and literal per TOML spec)
+    if (Peek = #10) or ((Peek = #13) and (PeekNext = #10)) then
       begin
         if Peek = #13 then Advance;
         if Peek = #10 then Advance;
