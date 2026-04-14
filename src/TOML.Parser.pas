@@ -499,6 +499,20 @@ begin
             // Skip the final Advance call - we've already consumed all characters
             Continue;
           end;
+          #10, #13: begin
+            // Line-ending backslash: trim newline and following whitespace
+            if IsMultiline then
+            begin
+              if Peek = #13 then Advance; // Skip CR
+              if Peek = #10 then Advance; // Skip LF
+              // Skip leading whitespace on next line
+              while not IsAtEnd and ((Peek = ' ') or (Peek = #9)) do
+                Advance;
+              Continue;
+            end
+            else
+              raise ETOMLParserException.Create('Invalid escape sequence');
+          end;
           else raise ETOMLParserException.Create('Invalid escape sequence');
         end;
         Advance;
