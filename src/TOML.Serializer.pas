@@ -88,7 +88,11 @@ type
       @param ADateTime The datetime to write
       Formats datetime according to RFC 3339 }
     procedure WriteDateTime(const ADateTime: TDateTime);
-    
+
+    { Writes an inline comment for a value if one is present
+      @param AValue The value whose InlineComment property is checked }
+    procedure WriteInlineComment(const AValue: TTOMLValue);
+
     { Checks if a key needs to be quoted
       @param AKey The key to check
       @returns True if key needs quoting, False otherwise }
@@ -290,6 +294,15 @@ begin
   FStringBuilder.Append(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz"Z"', ADateTime));
 end;
 
+procedure TTOMLSerializer.WriteInlineComment(const AValue: TTOMLValue);
+begin
+  if AValue.InlineComment <> '' then
+  begin
+    FStringBuilder.Append(' # ');
+    FStringBuilder.Append(AValue.InlineComment);
+  end;
+end;
+
 procedure TTOMLSerializer.WriteArray(const AArray: TTOMLArray);
 var
   i: Integer;
@@ -354,97 +367,119 @@ begin
       
     tvtTable, tvtInlineTable:
       WriteTable(AValue.AsTable, AValue.ValueType = tvtInlineTable);
+
+    tvtComment:
+    begin
+      FStringBuilder.Append('# ');
+      FStringBuilder.Append(TTOMLComment(AValue).Text);
+    end;
   end;
 end;
 
 procedure TTOMLSerializer.WriteTable(const ATable: TTOMLTable; const AInline: Boolean = False);
 var
   First: Boolean;
-  Pair: TTOMLKeyValuePair;
+  Entry: TTOMLTableEntry;
   SubTable: TTOMLTable;
-  i: Integer;
+  i, j: Integer;
   ArrayValue: TTOMLArray;
   AllTables: Boolean;
 begin
   if AInline then
   begin
-    // Write inline table format: { key1 = value1, key2 = value2 }
     FStringBuilder.Append('{');
     First := True;
-    
-    for Pair in ATable.Items do
+
+    for i := 0 to ATable.Body.Count - 1 do
     begin
+      Entry := ATable.Body[i];
+      if Entry.Value is TTOMLComment then
+        Continue;
+
       if not First then
         FStringBuilder.Append(', ')
       else
         First := False;
-        
-      WriteKey(Pair.Key);
+
+      WriteKey(Entry.Key);
       FStringBuilder.Append(' = ');
-      WriteValue(Pair.Value);
+      WriteValue(Entry.Value);
     end;
-    
+
     FStringBuilder.Append('}');
   end
   else
   begin
-    // First write all non-array and non-table values
-    for Pair in ATable.Items do
+    // First pass: write all non-table, non-array-of-tables values and comments
+    for i := 0 to ATable.Body.Count - 1 do
     begin
-      if not ((Pair.Value.ValueType = tvtTable) or 
-              ((Pair.Value.ValueType = tvtArray) and (Pair.Value.AsArray.Count > 0) and 
-               (Pair.Value.AsArray.GetItem(0).ValueType = tvtTable))) then
+      Entry := ATable.Body[i];
+
+      if Entry.Value is TTOMLComment then
       begin
-        // Remove indentation for table key-value pairs
-        WriteKey(Pair.Key);
-        FStringBuilder.Append(' = ');
-        WriteValue(Pair.Value);
+        WriteValue(Entry.Value);
         WriteLine;
+        Continue;
       end;
+
+      if Entry.Value.ValueType = tvtTable then
+        Continue;
+      if (Entry.Value.ValueType = tvtArray) and (Entry.Value.AsArray.Count > 0) and
+         (Entry.Value.AsArray.GetItem(0).ValueType = tvtTable) then
+        Continue;
+
+      WriteKey(Entry.Key);
+      FStringBuilder.Append(' = ');
+      WriteValue(Entry.Value);
+      WriteInlineComment(Entry.Value);
+      WriteLine;
     end;
-    
-    // Then write arrays of tables
-    for Pair in ATable.Items do
+
+    // Second pass: write arrays of tables, then sub-tables (preserving body order)
+    for i := 0 to ATable.Body.Count - 1 do
     begin
-      if (Pair.Value.ValueType = tvtArray) and (Pair.Value.AsArray.Count > 0) then
+      Entry := ATable.Body[i];
+
+      if Entry.Value is TTOMLComment then
+        Continue;
+
+      if (Entry.Value.ValueType = tvtArray) and (Entry.Value.AsArray.Count > 0) then
       begin
-        ArrayValue := Pair.Value.AsArray;
-        
-        // Check if this is an array of tables
+        ArrayValue := Entry.Value.AsArray;
+
         AllTables := True;
-        for i := 0 to ArrayValue.Count - 1 do
+        for j := 0 to ArrayValue.Count - 1 do
         begin
-          if ArrayValue.GetItem(i).ValueType <> tvtTable then
+          if ArrayValue.GetItem(j).ValueType <> tvtTable then
           begin
             AllTables := False;
             Break;
           end;
         end;
-        
+
         if AllTables then
         begin
-          for i := 0 to ArrayValue.Count - 1 do
+          for j := 0 to ArrayValue.Count - 1 do
           begin
-            if i > 0 then
+            if j > 0 then
               WriteLine;
-            WriteLine('[[' + BuildPath(Pair.Key) + ']]');
-            FCurrentPath.Add(Pair.Key);
-            WriteTable(ArrayValue.GetItem(i).AsTable);
+            WriteLine('[[' + BuildPath(Entry.Key) + ']]');
+            FCurrentPath.Add(Entry.Key);
+            WriteTable(ArrayValue.GetItem(j).AsTable);
             FCurrentPath.Delete(FCurrentPath.Count - 1);
           end;
-          continue;
+          Continue;
         end;
       end;
-      
-      // Handle regular tables with path tracking
-      if Pair.Value.ValueType = tvtTable then
+
+      if Entry.Value.ValueType = tvtTable then
       begin
-        SubTable := Pair.Value.AsTable;
+        SubTable := Entry.Value.AsTable;
         WriteLine;
-        WriteLine('[' + BuildPath(Pair.Key) + ']');
-        if SubTable.Items.Count > 0 then
+        WriteLine('[' + BuildPath(Entry.Key) + ']');
+        if SubTable.Body.Count > 0 then
         begin
-          FCurrentPath.Add(Pair.Key);
+          FCurrentPath.Add(Entry.Key);
           WriteTable(SubTable);
           FCurrentPath.Delete(FCurrentPath.Count - 1);
         end;
