@@ -364,10 +364,6 @@ begin
   begin
     case Peek of
       ' ', #9: Advance;
-      '#': begin
-        while (not IsAtEnd) and (Peek <> #10) do
-          Advance;
-      end;
       else
         Break;
     end;
@@ -877,6 +873,18 @@ begin
       Advance;
       Result.TokenType := ttRBrace;
       Result.Value := '}';
+    end;
+    '#': begin
+      Advance; // Skip the # character
+      Result.Value := '';
+      while not IsAtEnd and (Peek <> #10) and (Peek <> #13) do
+        Result.Value := Result.Value + Advance;
+      // Trim leading space from comment text
+      if (Length(Result.Value) > 0) and (Result.Value[1] = ' ') then
+        Delete(Result.Value, 1, 1);
+      Result.TokenType := ttComment;
+      Result.Line := FLine;
+      Result.Column := FColumn;
     end;
     #10, #13: begin
       if (Peek = #13) and (PeekNext = #10) then
