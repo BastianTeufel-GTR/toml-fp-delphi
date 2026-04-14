@@ -81,6 +81,20 @@ type
   TTOMLValueList = TList<TTOMLValue>;
 
 {$ENDIF}
+
+  { Record representing a single entry in an ordered TOML table body.
+    Key is empty for standalone comment entries. }
+  TTOMLTableEntry = record
+    Key: string;
+    Value: TTOMLValue;
+  end;
+
+{$IF defined(FPC)}
+  TTOMLTableEntryList = specialize TList<TTOMLTableEntry>;
+{$ELSE}
+  TTOMLTableEntryList = TList<TTOMLTableEntry>;
+{$ENDIF}
+
   { Base TOML value class - abstract base class for all TOML value types
     Provides common functionality and type conversion methods }
   TTOMLValue = class
@@ -227,17 +241,21 @@ type
     property Count: Integer read GetCount;
   end;
 
-  { Table value - represents a TOML table (collection of key/value pairs) }
+  { Table value - represents a TOML table (collection of key/value pairs).
+    FBody preserves insertion order (including comment entries).
+    FIndex provides fast key lookups. Items property exposes FIndex for backward compatibility. }
   TTOMLTable = class(TTOMLValue)
   private
-    FItems: TTOMLTableDict;  // Dictionary of key/value pairs
+    FBody: TTOMLTableEntryList;
+    FIndex: TTOMLTableDict;
+    procedure RemoveFromBody(const AKey: string);
   protected
     function GetAsTable: TTOMLTable; override;
   public
     { Creates a new empty TOML table }
     constructor Create;
     destructor Destroy; override;
-    
+
     { Adds a key-value pair to the table.
       When AKey already exists and both the existing value and AValue are TTOMLTable,
       the entries from AValue are merged into the existing table and AValue is freed.
@@ -245,15 +263,20 @@ type
       @param AValue The value to add. Ownership is transferred; caller must not free it.
       @raises ETOMLParserException if AKey already exists and at least one value is not a table }
     procedure Add(const AKey: string; AValue: TTOMLValue);
-    
+
+    { Adds a standalone comment entry to the table body }
+    procedure AddComment(const AText: string);
+
     { Tries to get a value by key
       @param AKey The key to look up
       @param AValue The found value (if successful)
       @returns True if the key exists, False otherwise }
     function TryGetValue(const AKey: string; out AValue: TTOMLValue): Boolean;
-    
-    { Property for accessing the underlying dictionary }
-    property Items: TTOMLTableDict read FItems;
+
+    { Items exposes the index dictionary for backward-compatible key lookups }
+    property Items: TTOMLTableDict read FIndex;
+    { Body exposes the ordered entry list (key-value pairs and comments) }
+    property Body: TTOMLTableEntryList read FBody;
   end;
 
 implementation
@@ -436,18 +459,34 @@ end;
 constructor TTOMLTable.Create;
 begin
   inherited Create(tvtTable);
-  FItems := TTOMLTableDict.Create;
+  FBody := TTOMLTableEntryList.Create;
+  FIndex := TTOMLTableDict.Create;
 end;
 
 destructor TTOMLTable.Destroy;
 var
-  Item: TTOMLValue;
+  i: Integer;
 begin
-  // Free all values in the table
-  for Item in FItems.Values do  // Iterates through all values in the dictionary
-    Item.Free;                  // Frees each value (including nested tables)
-  FItems.Free;                  // Frees the dictionary itself
-  inherited Destroy;            // Calls parent destructor
+  // Free all values via the body list (single ownership)
+  for i := 0 to FBody.Count - 1 do
+    FBody[i].Value.Free;
+  FBody.Free;
+  // FIndex holds the same references — do NOT free values again
+  FIndex.Free;
+  inherited Destroy;
+end;
+
+procedure TTOMLTable.RemoveFromBody(const AKey: string);
+var
+  i: Integer;
+begin
+  for i := FBody.Count - 1 downto 0 do
+    if FBody[i].Key = AKey then
+    begin
+      // Do NOT free the value — ownership is being transferred
+      FBody.Delete(i);
+      Exit;
+    end;
 end;
 
 procedure TTOMLTable.Add(const AKey: string; AValue: TTOMLValue);
@@ -458,53 +497,64 @@ var
   MergeKey: string;
   MergeValue: TTOMLValue;
   i: Integer;
+  Entry: TTOMLTableEntry;
 begin
-  if FItems = nil then
-    FItems := TTOMLTableDict.Create;
-
-  if FItems.TryGetValue(AKey, ExistingValue) then
+  if FIndex.TryGetValue(AKey, ExistingValue) then
   begin
     // Both existing and new are tables: merge new entries into existing
     if (ExistingValue is TTOMLTable) and (AValue is TTOMLTable) then
     begin
       MergeSource := TTOMLTable(AValue);
-      // Collect keys first to avoid iterator invalidation
       MergeKeys := TStringList.Create;
       try
         for MergeKey in MergeSource.Items.Keys do
           MergeKeys.Add(MergeKey);
-        // Transfer each entry: detach from source before adding to target
-        // This prevents double-free if a later Add raises on duplicate key
         for i := 0 to MergeKeys.Count - 1 do
         begin
           MergeKey := MergeKeys[i];
           MergeValue := MergeSource.Items[MergeKey];
-          // Detach from source BEFORE adding to target
-          MergeSource.Items.Remove(MergeKey);
+          MergeSource.FIndex.Remove(MergeKey);
+          // Also remove from source body to prevent double-free
+          MergeSource.RemoveFromBody(MergeKey);
           try
             TTOMLTable(ExistingValue).Add(MergeKey, MergeValue);
           except
-            // Re-attach to source so caller's except block can free it
-            MergeSource.Items.AddOrSetValue(MergeKey, MergeValue);
+            MergeSource.FIndex.AddOrSetValue(MergeKey, MergeValue);
+            Entry.Key := MergeKey;
+            Entry.Value := MergeValue;
+            MergeSource.FBody.Add(Entry);
             raise;
           end;
         end;
       finally
         MergeKeys.Free;
       end;
-      // All entries transferred — free the now-empty wrapper
       MergeSource.Free;
     end
     else
       raise ETOMLParserException.CreateFmt('Duplicate key "%s" found', [AKey]);
   end
   else
-    FItems.AddOrSetValue(AKey, AValue);
+  begin
+    Entry.Key := AKey;
+    Entry.Value := AValue;
+    FBody.Add(Entry);
+    FIndex.AddOrSetValue(AKey, AValue);
+  end;
+end;
+
+procedure TTOMLTable.AddComment(const AText: string);
+var
+  Entry: TTOMLTableEntry;
+begin
+  Entry.Key := '';
+  Entry.Value := TTOMLComment.Create(AText);
+  FBody.Add(Entry);
 end;
 
 function TTOMLTable.TryGetValue(const AKey: string; out AValue: TTOMLValue): Boolean;
 begin
-  Result := FItems.TryGetValue(AKey, AValue);
+  Result := FIndex.TryGetValue(AKey, AValue);
 end;
 
 function TTOMLTable.GetAsTable: TTOMLTable;
