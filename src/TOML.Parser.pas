@@ -1420,7 +1420,11 @@ begin
             Expect(ttRBracket);
             if IsArrayOfTables then
               Expect(ttRBracket);
-            
+
+            // Skip inline comment after table header (out of scope for preservation)
+            if FCurrentToken.TokenType = ttComment then
+              Advance;
+
             // Navigate to the correct table
             CurrentTable := Result;
             for i := 0 to TablePath.Count - 2 do
@@ -1499,6 +1503,12 @@ begin
               KeyPair := ParseKeyValue;
               try
                 CurrentTable.Add(KeyPair.Key, KeyPair.Value);
+                // Check for inline comment after value
+                if FCurrentToken.TokenType = ttComment then
+                begin
+                  KeyPair.Value.InlineComment := FCurrentToken.Value;
+                  Advance;
+                end;
               except
                 KeyPair.Value.Free;
                 raise;
@@ -1511,7 +1521,13 @@ begin
                   [E.Message, FCurrentToken.Line, FCurrentToken.Column]);
             end;
           end;
-          
+
+          ttComment:
+          begin
+            CurrentTable.AddComment(FCurrentToken.Value);
+            Advance;
+          end;
+
           ttNewLine: Advance;
           
           else
