@@ -4,7 +4,7 @@
 [![Delphi 12](https://img.shields.io/badge/Delphi-12-red.svg)](https://www.embarcadero.com/products/delphi)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
-[![Version](https://img.shields.io/badge/Version-1.1.0-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.2.0-blueviolet.svg)]()
 
 A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Delphi and Free Pascal, fully compliant with the TOML v1.0.0 specification.
 
@@ -13,7 +13,7 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
 
 > [!NOTE]
 >
-> Our extensive test suite ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases. The Delphi DUnitX test suite covers nested key compliance, array-of-tables serialization, and round-trip correctness.
+> Our extensive test suite ensures that TOML-FP adheres to the TOML v1.0.0 specification, covering all essential data types, structures, and edge cases. The Delphi DUnitX test suite covers nested key compliance, array-of-tables serialization, comment round-trip preservation, multiline string handling, and round-trip correctness.
 
 
 ## Table of Contents
@@ -33,6 +33,7 @@ A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and s
     - [Common Use Cases](#common-use-cases)
       - [Working with Arrays](#working-with-arrays)
       - [Nested Tables](#nested-tables)
+      - [Working with Comments](#working-with-comments)
       - [Hierarchical Paths vs Literal Dotted Keys](#hierarchical-paths-vs-literal-dotted-keys)
       - [Serializing Complex Structures](#serializing-complex-structures)
     - [Memory Management](#memory-management)
@@ -62,17 +63,20 @@ TOML-FP provides a complete solution for working with TOML configuration files i
 ## Features
 
 - **Full TOML v1.0.0 Compliance:** Supports all TOML data types and structures, including nested arrays of tables (`[[fruits.varieties]]`), sub-tables within array elements (`[fruits.physical]`), and dotted keys in key-value pairs (`physical.color = "red"`)
+- **Comment Preservation:** Full round-trip comment support — standalone comments and inline comments are captured during parsing, stored in the AST, and reproduced during serialization
+- **Multiline String Support:** Round-trip preservation of multiline basic strings (`"""..."""`), multiline literal strings (`'''...'''`), and literal strings (`'...'`), including the TOML v1.0.0 line-ending backslash feature
 - **Type-Safe API:** Strong typing with compile-time checks
 - **Memory Management:** Automatic cleanup with proper object lifecycle management
 - **Error Handling:** Detailed error messages and exception handling
 - **Serialization:** Convert Pascal objects to TOML and back with correct full-path headers for nested structures
 - **Implicit Table Merging:** Dotted keys with shared prefixes automatically merge into the correct table hierarchy
 - **Documentation:** Comprehensive examples and API documentation
-- **Test Suite:** DUnitX test suite for Delphi 12 plus fpcunit suite for Free Pascal
+- **Test Suite:** DUnitX test suite for Delphi 12 (35 tests) plus fpcunit suite for Free Pascal
 
 ## To Do / In Progress
 
-- [ ] More tests for error handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms.
+- [ ] Comment preservation for table headers, end-of-file comments, and comments inside multiline arrays
+- [ ] More tests for error handling: Robust testing of invalid inputs and ensuring appropriate error messages or handling mechanisms
 - [ ] Performance optimization for large TOML files
 - [ ] Additional examples for common use cases
 
@@ -248,6 +252,61 @@ begin
 end.
 ```
 
+#### Working with Comments
+
+TOML-FP preserves comments through parse-serialize round-trips and provides an API for adding comments programmatically.
+
+```pascal
+var
+  Config: TTOMLTable;
+  Resolution: TTOMLFloat;
+begin
+  Config := TOMLTable;
+  try
+    // Add standalone comments (appear on their own line before the next key)
+    Config.AddComment('default STL resolution');
+    Config.AddComment('this value is used for slicing a STL chipbreaker file');
+    Config.AddComment('dimension in mm, smaller value = higher accuracy');
+
+    // Add a value with an inline comment
+    Resolution := TTOMLFloat.Create(0.5);
+    Resolution.InlineComment := 'default value';
+    Config.Add('stl_resolution', Resolution);
+
+    WriteLn(SerializeTOML(Config));
+  finally
+    Config.Free;
+  end;
+end;
+```
+
+Output:
+```toml
+# default STL resolution
+# this value is used for slicing a STL chipbreaker file
+# dimension in mm, smaller value = higher accuracy
+stl_resolution = 0.5 # default value
+```
+
+Comments in existing TOML files are automatically preserved when parsing and re-serializing:
+
+```pascal
+var
+  Doc: TTOMLTable;
+begin
+  Doc := ParseTOMLFromFile('config.toml');
+  try
+    // Modify values — comments are preserved
+    Doc.Items['stl_resolution'].Free;
+    Doc.Add('stl_resolution', TTOMLFloat.Create(0.25));
+
+    SerializeTOMLToFile(Doc, 'config.toml');
+  finally
+    Doc.Free;
+  end;
+end;
+```
+
 #### Hierarchical Paths vs Literal Dotted Keys
 
 TOML-FP correctly handles the distinction between hierarchical paths and literal dotted keys as per the TOML specification:
@@ -409,14 +468,17 @@ end.
 
 ### Types
 
-- `TTOMLValue` - Base type for all TOML values
-- `TTOMLTable` - Represents a TOML table
+- `TTOMLValue` - Base type for all TOML values (has `InlineComment` property)
+- `TTOMLTable` - Represents a TOML table (has `AddComment`, `Body`, and `Items` properties)
 - `TTOMLArray` - Represents a TOML array
-- `TTOMLString` - Represents a TOML string value
+- `TTOMLString` - Represents a TOML string value (has `Style` property for round-trip format preservation)
 - `TTOMLInteger` - Represents a TOML integer value
 - `TTOMLFloat` - Represents a TOML float value
 - `TTOMLBoolean` - Represents a TOML boolean value
 - `TTOMLDateTime` - Represents a TOML datetime value
+- `TTOMLComment` - Represents a standalone comment line (has `Text` property)
+- `TTOMLStringStyle` - Enum: `tssBasic`, `tssLiteral`, `tssMultilineBasic`, `tssMultilineLiteral`
+- `TTOMLTableEntry` - Record with `Key` and `Value` fields, used in `TTOMLTable.Body`
 
 ### Helper Functions for Creating TOML Values
 
@@ -469,6 +531,13 @@ Creates a TOML array.
 ```
 Creates a TOML table.
 
+- `TOMLComment`
+
+```pascal
+  function TOMLComment(const AText: string): TTOMLComment;
+```
+Creates a TOML comment value.
+
 ### Parsing Functions
 
 - `ParseTOML`
@@ -502,7 +571,7 @@ Serializes a `TTOMLValue` and saves it to the specified file. Returns `True` on 
 
 ## Testing
 
-The library includes a comprehensive test suite (59 items). 
+The library includes a comprehensive test suite (59 fpcunit items + 35 DUnitX items). 
 
 To run the tests:
 

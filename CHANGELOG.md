@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changelog
 
+### v1.2.0 - Comment Support & Multiline String Fix (2026-04-14)
+
+#### Added
+- **Full round-trip comment preservation:** Comments are now captured during parsing and reproduced during serialization
+  - Standalone full-line comments (`# comment on its own line`) stored as `TTOMLComment` entries in the table body
+  - Inline comments (`key = "value" # comment`) stored in the `InlineComment` property on `TTOMLValue`
+- **Programmatic comment API:**
+  - `TTOMLTable.AddComment(Text)` — adds a standalone comment line before the next key-value pair
+  - `TTOMLValue.InlineComment` — read/write property for inline comments after a value
+- **String style preservation:** `TTOMLStringStyle` enum (`tssBasic`, `tssLiteral`, `tssMultilineBasic`, `tssMultilineLiteral`) tracks the original quoting style through round-trips
+- **Style-aware serialization:** Multiline strings (`"""..."""` and `'''...'''`) and literal strings (`'...'`) are now preserved in their original format instead of being flattened to basic double-quoted strings
+- **Line-ending backslash:** Implemented TOML v1.0.0 line-ending backslash feature for multiline basic strings — a `\` at end of line trims the newline and leading whitespace on the next line
+- `TTOMLTable.Body` property — ordered list of all entries (key-value pairs and comments) preserving insertion order
+- `TOMLComment(Text)` helper function in the `TOML` facade unit
+- DUnitX test suite for comments (12 tests) and multiline strings (11 tests), bringing total to 35 Delphi tests
+
+#### Changed
+- `TTOMLTable` restructured internally: uses an ordered body list (`TList<TTOMLTableEntry>`) for insertion-order iteration plus a dictionary index for fast key lookups. The `Items` property remains backward-compatible, pointing to the dictionary.
+- `TTOMLString.Create` now accepts an optional `AStyle` parameter (default: `tssBasic`)
+- Serializer iterates `TTOMLTable.Body` instead of the dictionary, preserving document structure and comment positions
+- Lexer emits `ttComment` tokens instead of silently discarding comment text
+
+#### Fixed
+- Multiline literal strings (`'''...'''`) now correctly trim the first newline after the opening delimiter per TOML v1.0.0 spec (was only trimming for multiline basic strings)
+- Literal string serialization now falls back to basic string format when the value contains single quotes or control characters
+
 ### v1.1.0 - TOML v1.0.0 Full Compliance (2026-03-20)
 
 #### Added
