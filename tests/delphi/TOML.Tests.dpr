@@ -17,7 +17,8 @@ uses
   TOML.Types in '..\..\src\TOML.Types.pas',
   TOML.Parser in '..\..\src\TOML.Parser.pas',
   TOML.Serializer in '..\..\src\TOML.Serializer.pas',
-  TOML.Tests.NestedKeys in 'TOML.Tests.NestedKeys.pas';
+  TOML.Tests.NestedKeys in 'TOML.Tests.NestedKeys.pas',
+  TOML.Tests.MultilineStrings in 'TOML.Tests.MultilineStrings.pas';
 
 var
   Runner: ITestRunner;

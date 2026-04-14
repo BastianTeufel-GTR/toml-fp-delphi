@@ -69,6 +69,7 @@
         <DCCReference Include="..\..\src\TOML.Parser.pas"/>
         <DCCReference Include="..\..\src\TOML.Serializer.pas"/>
         <DCCReference Include="TOML.Tests.NestedKeys.pas"/>
+        <DCCReference Include="TOML.Tests.MultilineStrings.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
