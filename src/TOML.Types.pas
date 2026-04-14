@@ -45,7 +45,8 @@ type
     tvtDateTime,    // Date/time value type (RFC 3339)
     tvtArray,       // Array value type (ordered list of values)
     tvtTable,       // Table value type (collection of key/value pairs)
-    tvtInlineTable  // Inline table value type (compact table representation)
+    tvtInlineTable, // Inline table value type (compact table representation)
+    tvtComment      // Comment value type (standalone full-line comment)
   );
 
   { Forward declarations for interdependent types }
@@ -85,6 +86,7 @@ type
   TTOMLValue = class
   private
     FValueType: TTOMLValueType;  // Type of the TOML value
+    FInlineComment: string;      // Optional inline comment after the value
   protected
     { Protected type conversion methods - override in derived classes
       Each method raises ETOMLException if conversion is not supported }
@@ -111,6 +113,7 @@ type
     property AsDateTime: TDateTime read GetAsDateTime;
     property AsArray: TTOMLArray read GetAsArray;
     property AsTable: TTOMLTable read GetAsTable;
+    property InlineComment: string read FInlineComment write FInlineComment;
   end;
 
   { String value - represents a TOML string (basic, literal, multiline basic, or multiline literal) }
@@ -127,6 +130,17 @@ type
     constructor Create(const AValue: string; AStyle: TTOMLStringStyle = tssBasic);
     property Value: string read FValue write FValue;
     property Style: TTOMLStringStyle read FStyle write FStyle;
+  end;
+
+  { Comment value - represents a standalone full-line TOML comment }
+  TTOMLComment = class(TTOMLValue)
+  private
+    FText: string;  // The comment text (without the leading '#')
+  public
+    { Creates a new TOML comment value
+      @param AText The comment text }
+    constructor Create(const AText: string);
+    property Text: string read FText write FText;
   end;
 
   { Integer value - represents a TOML integer (decimal, hex, octal, binary) }
@@ -311,6 +325,14 @@ end;
 function TTOMLString.GetAsString: string;
 begin
   Result := FValue;
+end;
+
+{ TTOMLComment }
+
+constructor TTOMLComment.Create(const AText: string);
+begin
+  inherited Create(tvtComment);
+  FText := AText;
 end;
 
 { TTOMLInteger }
