@@ -45,7 +45,11 @@ type
   TTOMLDateTime = TOML.Types.TTOMLDateTime;
   TTOMLArray = TOML.Types.TTOMLArray;
   TTOMLTable = TOML.Types.TTOMLTable;
-  
+  TTOMLComment = TOML.Types.TTOMLComment;
+  TTOMLStringStyle = TOML.Types.TTOMLStringStyle;
+  TTOMLTableEntry = TOML.Types.TTOMLTableEntry;
+  TTOMLTableEntryList = TOML.Types.TTOMLTableEntryList;
+
   { Re-export exception types }
   ETOMLException = TOML.Types.ETOMLException;
   ETOMLParserException = TOML.Types.ETOMLParserException;
@@ -92,6 +96,12 @@ function TOMLArray: TTOMLArray;
   @returns A new empty TTOMLTable instance that must be freed by the caller
   @note The caller is responsible for freeing the returned instance and any values added to it }
 function TOMLTable: TTOMLTable;
+
+{ Creates a new TOML comment
+  @param AText The comment text (without the leading '#')
+  @returns A new TTOMLComment instance that must be freed by the caller
+  @note The caller is responsible for freeing the returned instance }
+function TOMLComment(const AText: string): TTOMLComment;
 
 { Parsing functions }
 
@@ -172,6 +182,11 @@ end;
 function TOMLTable: TTOMLTable;
 begin
   Result := TTOMLTable.Create;
+end;
+
+function TOMLComment(const AText: string): TTOMLComment;
+begin
+  Result := TTOMLComment.Create(AText);
 end;
 
 { Parsing functions implementation }
