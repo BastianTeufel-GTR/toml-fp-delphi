@@ -26,6 +26,15 @@ uses
   SysUtils, Classes, Generics.Collections;
 
 type
+  { String style variants for TOML string values
+    Tracks the original quoting style for round-trip preservation }
+  TTOMLStringStyle = (
+    tssBasic,             // "value"
+    tssLiteral,           // 'value'
+    tssMultilineBasic,    // """value"""
+    tssMultilineLiteral   // '''value'''
+  );
+
   { TOML value types - represents all possible TOML data types
     These types correspond directly to the TOML specification types }
   TTOMLValueType = (
@@ -104,17 +113,20 @@ type
     property AsTable: TTOMLTable read GetAsTable;
   end;
 
-  { String value - represents a TOML string (basic or literal) }
+  { String value - represents a TOML string (basic, literal, multiline basic, or multiline literal) }
   TTOMLString = class(TTOMLValue)
   private
-    FValue: string;  // The string value
+    FValue: string;              // The string value
+    FStyle: TTOMLStringStyle;    // The original quoting style
   protected
     function GetAsString: string; override;
   public
     { Creates a new TOML string value
-      @param AValue The string value to store }
-    constructor Create(const AValue: string);
+      @param AValue The string value to store
+      @param AStyle The quoting style (default: tssBasic) }
+    constructor Create(const AValue: string; AStyle: TTOMLStringStyle = tssBasic);
     property Value: string read FValue write FValue;
+    property Style: TTOMLStringStyle read FStyle write FStyle;
   end;
 
   { Integer value - represents a TOML integer (decimal, hex, octal, binary) }
@@ -289,10 +301,11 @@ end;
 
 { TTOMLString }
 
-constructor TTOMLString.Create(const AValue: string);
+constructor TTOMLString.Create(const AValue: string; AStyle: TTOMLStringStyle = tssBasic);
 begin
   inherited Create(tvtString);
   FValue := AValue;
+  FStyle := AStyle;
 end;
 
 function TTOMLString.GetAsString: string;
