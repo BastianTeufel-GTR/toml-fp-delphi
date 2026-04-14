@@ -67,6 +67,12 @@ type
       @param AValue The string to write
       Handles all required string escaping per TOML spec }
     procedure WriteString(const AValue: string);
+
+    { Writes a TOML string value in its original style (basic, literal, multiline)
+      @param AValue The TTOMLString instance carrying both value and style
+      Falls back to basic double-quoted output when the chosen style cannot
+      represent the value losslessly (e.g. single quotes in a literal string) }
+    procedure WriteStringValue(const AValue: TTOMLString);
     
     { Writes any TOML value based on its type
       @param AValue The value to write
@@ -133,6 +139,9 @@ function SerializeTOML(const AValue: TTOMLValue): string;
 function SerializeTOMLToFile(const AValue: TTOMLValue; const AFileName: string): Boolean;
 
 implementation
+
+uses
+  TOML.Parser;
 
 { High-level function implementations }
 
@@ -288,6 +297,91 @@ begin
   FStringBuilder.Append('"');
 end;
 
+procedure TTOMLSerializer.WriteStringValue(const AValue: TTOMLString);
+var
+  i: Integer;
+  C: Char;
+  S: string;
+  HasControlChars: Boolean;
+begin
+  S := AValue.Value;
+  case AValue.Style of
+    tssBasic:
+      WriteString(S);
+
+    tssLiteral:
+    begin
+      // Fall back to basic if value contains single quote or control chars
+      HasControlChars := False;
+      for i := 1 to Length(S) do
+        if Ord(S[i]) < 32 then
+        begin
+          HasControlChars := True;
+          Break;
+        end;
+
+      if (Pos('''', S) > 0) or HasControlChars then
+        WriteString(S)
+      else
+      begin
+        FStringBuilder.Append('''');
+        FStringBuilder.Append(S);
+        FStringBuilder.Append('''');
+      end;
+    end;
+
+    tssMultilineBasic:
+    begin
+      FStringBuilder.Append('"""');
+      FStringBuilder.AppendLine;
+      for i := 1 to Length(S) do
+      begin
+        C := S[i];
+        case C of
+          '\': FStringBuilder.Append('\\');
+          '"': begin
+            // Only escape if three consecutive quotes
+            if (i + 2 <= Length(S)) and (S[i+1] = '"') and (S[i+2] = '"') then
+              FStringBuilder.Append('\"')
+            else
+              FStringBuilder.Append('"');
+          end;
+          #8:  FStringBuilder.Append('\b');
+          #9:  FStringBuilder.Append(#9);   // Tab allowed literally in multiline
+          #10: FStringBuilder.Append(#10);  // Newline allowed literally
+          #13: FStringBuilder.Append(#13);  // CR allowed literally
+          else
+            if C < #32 then
+              FStringBuilder.AppendFormat('\u%.4x', [Ord(C)])
+            else
+              FStringBuilder.Append(C);
+        end;
+      end;
+      FStringBuilder.Append('"""');
+    end;
+
+    tssMultilineLiteral:
+    begin
+      // Fall back to multiline basic if value contains '''
+      if Pos('''''''', S) > 0 then
+      begin
+        // Output as multiline basic instead
+        FStringBuilder.Append('"""');
+        FStringBuilder.AppendLine;
+        FStringBuilder.Append(EscapeTomlString(S));
+        FStringBuilder.Append('"""');
+      end
+      else
+      begin
+        FStringBuilder.Append('''''''');
+        FStringBuilder.AppendLine;
+        FStringBuilder.Append(S);
+        FStringBuilder.Append('''''''');
+      end;
+    end;
+  end;
+end;
+
 procedure TTOMLSerializer.WriteDateTime(const ADateTime: TDateTime);
 begin
   // Format as RFC 3339 UTC datetime
@@ -345,7 +439,7 @@ procedure TTOMLSerializer.WriteValue(const AValue: TTOMLValue);
 begin
   case AValue.ValueType of
     tvtString:
-      WriteString(AValue.AsString);
+      WriteStringValue(TTOMLString(AValue));
       
     tvtInteger:
       FStringBuilder.Append(IntToStr(AValue.AsInteger));
