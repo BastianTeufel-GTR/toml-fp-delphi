@@ -92,6 +92,8 @@ type
     procedure Test79_SerializeDeepNesting;
     procedure Test80_RoundTripCanonicalFruitsExample;
     procedure Test81_RoundTripDeepNestedArrayChains;
+    { Locale safety }
+    procedure Test90_SerializeLocaleWithCommaDecimalSeparator;
   end;
 
 implementation
@@ -1862,6 +1864,54 @@ begin
     end;
   finally
     Doc.Free;
+  end;
+end;
+
+procedure TTOMLTestCase.Test90_SerializeLocaleWithCommaDecimalSeparator;
+var
+  SavedDecimalSeparator: Char;
+  Table: TTOMLTable;
+  Reparsed: TTOMLTable;
+  Serialized: string;
+  Value: TTOMLValue;
+begin
+  SavedDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+  DefaultFormatSettings.DecimalSeparator := ',';
+  try
+    Table := TOMLTable;
+    try
+      Table.Add('pi', TOMLFloat(3.14));
+      Table.Add('e', TOMLFloat(2.718));
+
+      Serialized := SerializeTOML(Table);
+
+      AssertTrue('Serialized output must contain "3.14"',
+        Pos('3.14', Serialized) > 0);
+      AssertTrue('Serialized output must contain "2.718"',
+        Pos('2.718', Serialized) > 0);
+      AssertTrue('Serialized output must NOT contain "3,14"',
+        Pos('3,14', Serialized) = 0);
+      AssertTrue('Serialized output must NOT contain "2,718"',
+        Pos('2,718', Serialized) = 0);
+
+      Reparsed := ParseTOML(Serialized);
+      try
+        AssertTrue('pi key present after round-trip',
+          Reparsed.TryGetValue('pi', Value));
+        AssertTrue('pi round-trips within 1e-9',
+          SameValue(Value.AsFloat, 3.14, 1e-9));
+        AssertTrue('e key present after round-trip',
+          Reparsed.TryGetValue('e', Value));
+        AssertTrue('e round-trips within 1e-9',
+          SameValue(Value.AsFloat, 2.718, 1e-9));
+      finally
+        Reparsed.Free;
+      end;
+    finally
+      Table.Free;
+    end;
+  finally
+    DefaultFormatSettings.DecimalSeparator := SavedDecimalSeparator;
   end;
 end;
 
