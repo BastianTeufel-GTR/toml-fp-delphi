@@ -30,7 +30,9 @@ var
   /// Locale-invariant format settings used throughout toml-fp for numeric
   /// and date formatting. Ensures the serializer emits '.' as the decimal
   /// separator regardless of the host locale. Advanced consumers that
-  /// hand-build TOML fragments can reuse this to stay spec-compliant.
+  /// hand-build TOML fragments can reuse this to stay spec-compliant —
+  /// access it via <c>uses TOML.Types</c> (the <c>TOML</c> façade unit
+  /// does not re-export variables).
   /// </summary>
   TOMLFormatSettings: TFormatSettings;
 
@@ -572,7 +574,7 @@ begin
 end;
 
 initialization
-  {$IFDEF FPC}
+  {$IF defined(FPC)}
   TOMLFormatSettings := DefaultFormatSettings;
   {$ELSE}
   TOMLFormatSettings := FormatSettings;
