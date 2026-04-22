@@ -19,7 +19,8 @@ uses
   TOML.Serializer in '..\..\src\TOML.Serializer.pas',
   TOML.Tests.NestedKeys in 'TOML.Tests.NestedKeys.pas',
   TOML.Tests.Comments in 'TOML.Tests.Comments.pas',
-  TOML.Tests.MultilineStrings in 'TOML.Tests.MultilineStrings.pas';
+  TOML.Tests.MultilineStrings in 'TOML.Tests.MultilineStrings.pas',
+  TOML.Tests.Locale in 'TOML.Tests.Locale.pas';
 
 var
   Runner: ITestRunner;
