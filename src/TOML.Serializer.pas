@@ -385,7 +385,7 @@ end;
 procedure TTOMLSerializer.WriteDateTime(const ADateTime: TDateTime);
 begin
   // Format as RFC 3339 UTC datetime
-  FStringBuilder.Append(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz"Z"', ADateTime));
+  FStringBuilder.Append(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz"Z"', ADateTime, TOMLFormatSettings));
 end;
 
 procedure TTOMLSerializer.WriteInlineComment(const AValue: TTOMLValue);
@@ -445,7 +445,7 @@ begin
       FStringBuilder.Append(IntToStr(AValue.AsInteger));
       
     tvtFloat:
-      FStringBuilder.Append(FloatToStr(AValue.AsFloat));
+      FStringBuilder.Append(FloatToStr(AValue.AsFloat, TOMLFormatSettings));
       
     tvtBoolean:
       if AValue.AsBoolean then
