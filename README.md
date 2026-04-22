@@ -4,7 +4,7 @@
 [![Delphi 12](https://img.shields.io/badge/Delphi-12-red.svg)](https://www.embarcadero.com/products/delphi)
 [![Free Pascal](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue.svg)](https://www.freepascal.org/)
 [![TOML](https://img.shields.io/badge/TOML-1.0.0-green.svg)](https://toml.io/)
-[![Version](https://img.shields.io/badge/Version-1.2.0-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.3.0-blueviolet.svg)]()
 
 A robust [TOML (Tom's Obvious, Minimal Language)](https://toml.io/) parser and serializer for Delphi and Free Pascal, fully compliant with the TOML v1.0.0 specification.
 

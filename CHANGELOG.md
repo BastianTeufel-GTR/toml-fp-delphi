@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changelog
 
-### v1.2.1 - Locale-Safe Float Serialization (2026-04-22)
+### v1.3.0 - Locale-Safe Float Serialization (2026-04-22)
 
 #### Fixed
 - **Float serialization ignored the host locale's `DecimalSeparator`.** On locales that use `','` as the decimal separator (German, French, etc.), `TTOMLSerializer` would emit invalid TOML such as `pi = 3,14`, which could not be round-tripped through the library's own parser. The serializer now routes `FloatToStr` and `FormatDateTime` through an invariant `TFormatSettings` with `DecimalSeparator := '.'` and `ThousandSeparator := #0`, so output is spec-compliant regardless of OS locale.
@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
 - **Public `TOMLFormatSettings: TFormatSettings`** in the `TOML.Types` unit — a locale-invariant settings record that the serializer routes all numeric and date formatting through. Consumers that hand-build TOML fragments can reuse it via `uses TOML.Types` to stay spec-compliant (note: the `TOML` façade unit does not re-export variables).
 - **DUnitX test** `TOML.Tests.Locale.TTOMLLocaleTests.Serialize_LocaleWithCommaDecimalSeparator_EmitsDotNotComma` and FPCUnit counterpart `Test90_SerializeLocaleWithCommaDecimalSeparator` that sabotage `DecimalSeparator := ','` during setup and verify round-trip correctness; guards against regressions.
+
+#### Notes
+- Verified on Delphi 12 (Win64) via DUnitX — 36/36 tests green under sabotaged locale. The FPCUnit mirror test (`Test90_SerializeLocaleWithCommaDecimalSeparator`) was added but not run in this release's CI environment; it should be executed on an FPC/Lazarus install as part of the next downstream verification.
 
 ### v1.2.0 - Comment Support & Multiline String Fix (2026-04-14)
 
