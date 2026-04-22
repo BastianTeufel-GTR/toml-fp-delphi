@@ -25,6 +25,15 @@ interface
 uses
   SysUtils, Classes, Generics.Collections;
 
+var
+  /// <summary>
+  /// Locale-invariant format settings used throughout toml-fp for numeric
+  /// and date formatting. Ensures the serializer emits '.' as the decimal
+  /// separator regardless of the host locale. Advanced consumers that
+  /// hand-build TOML fragments can reuse this to stay spec-compliant.
+  /// </summary>
+  TOMLFormatSettings: TFormatSettings;
+
 type
   { String style variants for TOML string values
     Tracks the original quoting style for round-trip preservation }
@@ -561,5 +570,14 @@ function TTOMLTable.GetAsTable: TTOMLTable;
 begin
   Result := Self;
 end;
+
+initialization
+  {$IFDEF FPC}
+  TOMLFormatSettings := DefaultFormatSettings;
+  {$ELSE}
+  TOMLFormatSettings := FormatSettings;
+  {$ENDIF}
+  TOMLFormatSettings.DecimalSeparator := '.';
+  TOMLFormatSettings.ThousandSeparator := #0;
 
 end. 
